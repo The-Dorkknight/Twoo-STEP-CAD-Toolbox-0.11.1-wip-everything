@@ -1,0 +1,166 @@
+{
+ "about": "Release gate for Twoo STEP CAD Toolbox. Run: python tools/golden.py. Limits, not exact numbers (see benchmarks/README.md). Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight). PolyForm Noncommercial 1.0.0.",
+ "recorded_with": "0.11.0-wip on Linux x86-64, Python 3.13, cadquery-ocp 8.0.1.1.0, numpy 2.5.3, scipy 1.18.1, trimesh 5.2.0",
+ "cases": [
+  {
+   "name": "box",
+   "part": {
+    "make": "box",
+    "name": "box"
+   },
+   "why": "The simplest CAD part: six flat faces. Anything but 6 means flat-face merging broke.",
+   "expect": {
+    "faces": [
+     6,
+     6
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.001,
+    "exact_area_pct_min": 99.9,
+    "seconds_max": 60
+   }
+  },
+  {
+   "name": "stepped",
+   "part": {
+    "make": "stepped",
+    "name": "stepped"
+   },
+   "why": "Two stacked blocks (two closed bodies): checks that several bodies still come out as valid solids.",
+   "expect": {
+    "faces": [
+     12,
+     12
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.001,
+    "exact_area_pct_min": 99.9,
+    "seconds_max": 60
+   }
+  },
+  {
+   "name": "sphere",
+   "part": {
+    "make": "sphere",
+    "name": "sphere"
+   },
+   "why": "A smooth ball must become sphere surfaces, not thousands of triangles.",
+   "expect": {
+    "faces": [
+     1,
+     4
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.05,
+    "exact_area_pct_min": 99.0,
+    "seconds_max": 120
+   }
+  },
+  {
+   "name": "cylinder",
+   "part": {
+    "make": "cylinder",
+    "name": "cylinder"
+   },
+   "why": "KNOWN WEAKNESS, locked so it can only get better: Classic (the default engine) leaves a 96-sided cylinder as 98 flat strips. The next two cases show Standard and Quick get it right (3 faces).",
+   "expect": {
+    "faces": [
+     3,
+     98
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.05,
+    "exact_area_pct_min": 99.0,
+    "seconds_max": 60
+   }
+  },
+  {
+   "name": "cylinder-auto",
+   "part": {
+    "make": "cylinder",
+    "name": "cylinder_auto"
+   },
+   "engine": "auto",
+   "why": "Standard (the Auto engine) must find the true cylinder: 3 faces.",
+   "expect": {
+    "faces": [
+     3,
+     3
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.02,
+    "exact_area_pct_min": 99.0,
+    "seconds_max": 60
+   }
+  },
+  {
+   "name": "cylinder-ladder",
+   "part": {
+    "make": "cylinder",
+    "name": "cylinder_ladder"
+   },
+   "engine": "ladder",
+   "why": "Quick (the Ladder engine) must take the lathe route: 3 faces.",
+   "expect": {
+    "faces": [
+     3,
+     3
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.02,
+    "exact_area_pct_min": 99.0,
+    "seconds_max": 60
+   }
+  },
+  {
+   "name": "knob",
+   "part": "tests/data/knob_plain.stl",
+   "why": "A real mixed part (plane, cylinders, a torus-like round, a ball): the everyday case. 0.10.2 gave 69 faces, 4 facet regions, 0.058 mm worst.",
+   "expect": {
+    "faces": [
+     55,
+     85
+    ],
+    "faceted_regions_max": 6,
+    "max_dev_max": 0.08,
+    "exact_area_pct_min": 85.0,
+    "seconds_max": 300
+   }
+  },
+  {
+   "name": "knob-quick",
+   "part": "tests/data/knob_plain.stl",
+   "engine": "ladder",
+   "why": "The same knob through Quick: must stay a valid solid within tolerance.",
+   "expect": {
+    "faces": [
+     55,
+     85
+    ],
+    "faceted_regions_max": 6,
+    "max_dev_max": 0.08,
+    "exact_area_pct_min": 85.0,
+    "seconds_max": 300
+   }
+  },
+  {
+   "name": "knob-hardpoint",
+   "part": "tests/data/knob_hardpoint.stl",
+   "kwargs": {
+    "mode": "surface",
+    "use_labels": true
+   },
+   "why": "The hardpoint STL of the same knob: its labelled faces are used instead of guessing, so 8 faces and no facets.",
+   "expect": {
+    "faces": [
+     6,
+     10
+    ],
+    "faceted_regions_max": 0,
+    "max_dev_max": 0.08,
+    "exact_area_pct_min": 90.0,
+    "seconds_max": 120
+   }
+  }
+ ]
+}

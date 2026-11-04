@@ -1,0 +1,28 @@
+== blobby
+lsq within tol: 0 / 13  median 0.07970718654614845
+coons within tol: 8 / 13  median 0.04969659807687233
+plate within tol: 2 / 13  median 0.10354055236442651
+coons<=plate 8  time coons 14.1  plate 6.4
+== knob_plain
+lsq within tol: 0 / 16  median 99.0
+coons within tol: 6 / 16  median 99.0
+plate within tol: 4 / 16  median 0.08741594601756394
+coons<=plate 8  time coons 19.6  plate 8.3
+     gap fills: Coons 0/0 used (0.0 s), plate 6/13 used (6.5 s)
+RESULT blobby.stl classic plate: 13.1s faces=26 maxdev=0.1412 tol=0.06338 solid=True valid=True
+     gap fills: Coons 6/10 used (14.2 s), plate 0/0 used (0.0 s)
+RESULT blobby.stl classic coons: 20.3s faces=21 maxdev=0.1454 tol=0.06338 solid=True valid=True
+     gap fills: Coons 6/10 used (14.0 s), plate 1/4 used (2.6 s)
+RESULT blobby.stl classic coons+plate: 23.1s faces=21 maxdev=0.1454 tol=0.06338 solid=True valid=True
+     gap fills: Coons 0/0 used (0.0 s), plate 13/17 used (8.3 s)
+RESULT knob_plain.stl classic plate: 14.4s faces=69 maxdev=0.0584 tol=0.02546 solid=True valid=True
+     gap fills: Coons 4/10 used (13.6 s), plate 0/0 used (0.0 s)
+RESULT knob_plain.stl classic coons: 20.8s faces=78 maxdev=0.0584 tol=0.02546 solid=True valid=True
+     gap fills: Coons 2/8 used (12.4 s), plate 5/6 used (7.9 s)
+RESULT knob_plain.stl classic coons+plate: 30.7s faces=69 maxdev=0.0583 tol=0.02546 solid=True valid=True
+RESULT blobcut.stl classic plate: 9.6s faces=17 maxdev=0.0831 tol=0.04926 solid=True valid=True
+RESULT blobcut.stl classic coons: 9.9s faces=17 maxdev=0.0831 tol=0.04926 solid=True valid=True
+RESULT blobcut.stl classic coons+plate: 10.0s faces=17 maxdev=0.0831 tol=0.04926 solid=True valid=True
+RESULT bumpbox.stl classic plate: 8.1s faces=13 maxdev=0.0763 tol=0.04311 solid=True valid=True
+RESULT bumpbox.stl classic coons: 7.9s faces=13 maxdev=0.0763 tol=0.04311 solid=True valid=True
+RESULT bumpbox.stl classic coons+plate: 7.7s faces=13 maxdev=0.0763 tol=0.04311 solid=True valid=True

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twoo STEP CAD Toolbox</title>
+<meta name="description" content="Possibly the most advanced and functional free (for non-commercial use) solid conversion software in the world. Convert STL meshes, hardpoint STL files, OpenSCAD models and photos or drawings of flat parts to real STEP solids. Portable, offline, Mac/Windows/Linux. Source-available · Non-commercial.">
+<link rel="icon" href="images/favicon-64.png"><link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2230;--mut:#5d6778;--acc:#2f6fed;--line:#dfe3ea}
+@media (prefers-color-scheme:dark){:root{--bg:#14171d;--card:#1d222b;--ink:#e8ebf1;--mut:#9aa4b5;--line:#2c3340}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,sans-serif}
+.wip{background:#b7791f;color:#fff;text-align:center;font-weight:700;padding:8px 12px}
+.w{max-width:980px;margin:0 auto;padding:0 16px}
+.hero{display:flex;gap:28px;align-items:center;padding:40px 0;flex-wrap:wrap}
+.hero img.ic{width:96px;height:96px;border-radius:20px}
+.hero h1{margin:0 0 6px;font-size:40px}.hero p{color:var(--mut);margin:0 0 14px;max-width:560px}
+.btn{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;padding:10px 20px;border-radius:9px;font-weight:650;margin-right:8px}
+.btn.o{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.shot{width:100%;height:auto;border-radius:12px;border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:26px 0}
+.research{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:26px 0}.research h2{margin:0 0 8px}.research p{margin:0 0 10px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}.card h3{margin:0 0 6px}
+h2{margin:34px 0 10px}code{background:var(--card);border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+footer{color:var(--mut);font-size:14px;padding:30px 0 50px;border-top:1px solid var(--line);margin-top:40px}
+a{color:var(--acc)}
+</style></head><body>
+<div class="wip">WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN · v0.11.1-wip</div>
+<div class="w">
+<div class="hero"><img class="ic" src="images/icon-512.png" alt="">
+<div><h1>Twoo STEP CAD Toolbox</h1><p><b>Possibly the most advanced and functional free (for non-commercial use) solid conversion software in the world.</b> Turn STL meshes, hardpoint STL files, OpenSCAD models and photos of flat parts into real STEP solids — true planes, cylinders and spheres, plus fitted NURBS for organic shapes — and jetwash junk out of old STEP files. Portable, offline, runs in your browser.</p>
+<a class="btn" id="dl" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/releases">Download</a><a class="btn o" id="repo" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox">Source on GitHub</a></div></div>
+<img class="shot" src="images/preview.webp" alt="3D preview of a converted part">
+<div class="grid">
+<div class="card"><h3>Real CAD surfaces</h3><p>Flat faces become planes, holes and rounds become cylinders and spheres; organic areas become smooth NURBS patches. Anything that can't be fitted stays as exact facets, so the solid is always closed.</p></div>
+<div class="card"><h3>Hardpoint STL</h3><p>A normal STL that also remembers which CAD face each triangle came from. Open it in the Hardpoints tab and the solid is rebuilt from its real faces instead of guessed: on the test knob 1,103 faces become 8.</p></div>
+<div class="card"><h3>OpenSCAD → STEP</h3><p>Rebuilds an OpenSCAD model as true CAD geometry (cylinders, spheres, exact booleans) instead of a mesh. Customizer fields, 3D preview and a live link that re-exports when you save. Needs OpenSCAD installed.</p></div>
+<div class="card"><h3>Diagnostic code <small>(new)</small></h3><p>The preview window shows the job's mode, surface fitter, quality settings and result as a QR code and in plain words. One screenshot is a complete report; <code>run_tostep.py diag</code> reads it back. No file name in it, nothing sent anywhere.</p></div>
+<div class="card"><h3>Image → STEP <small>(new, untested on real photos)</small></h3><p>Trace a photo, scan or drawing of a flat part into lines, arcs and splines and save it as STEP, flat or with a thickness. New: a printable calibration sheet and a 3D-printed 50 mm stand that measures the camera distance, for tall parts. A printable scale token (paper or plastic) sets the scale, straightens a tilted photo and takes the part's height out of it. So far measured on simulated photographs only.</p></div>
+<div class="card"><h3>Ladder engine <small>(experimental)</small></h3><p>Easy things first: the mesh is looked at for a few milliseconds and routed as prismatic, lathe, organic or mixed; exact shapes are claimed before anything slow runs and problem areas are guesstimated or kept as facets. A 24k-triangle vase went from 264 s and 8,980 faces to 8 s and 14 faces on the test machine. Classic stays the default.</p></div>
+<div class="card"><h3>Staged engine <small>(experimental)</small></h3><p>An opt-in fitter that finds lathe and extruded shapes first, so turned and round parts come out as a handful of exact faces instead of thousands. Classic stays the default.</p></div>
+<div class="card"><h3>Jetwash</h3><p>Removes slivers, 0.0001 mm steps, thin fins, specks and tiny holes from STEP files, with a threshold and coarseness slider.</p></div>
+<div class="card"><h3>Tools are plug-ins</h3><p>A small core and a folder per tool, each described by a manifest. The web page, the command line and the CAD buttons are built from the manifests, so a new tool is a folder, not a rewrite. <a href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/docs/ADDING_A_PLUGIN.md">How to add one</a>.</p></div>
+<div class="card"><h3>Long-term support, honestly</h3><p>The promises begin at 1.0.0 and are gated on real runs on a Mac, a Windows PC, FreeCAD and Fusion, which have not happened yet. Until then it is a work in progress with a golden benchmark that stops results getting worse. <a href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/LTS_POLICY.md">The policy</a>.</p></div>
+<div class="card"><h3>Successor to STL2STEP</h3><p>This replaces STL2STEP / EVERYTHING to solid, which is frozen at 0.10.3 as a finished dead end and kept online. <a href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/LEGACY.md">What came across and what did not</a>; <a href="https://github.com/The-Dorkknight/stl2step">the old project</a>.</p></div>
+<div class="card"><h3>Portable &amp; private</h3><p>One folder with its own Python. Nothing installed system-wide, nothing uploaded. Mac, Windows, Linux.</p></div>
+<div class="card"><h3>FreeCAD &amp; Fusion</h3><p>One FreeCAD workbench and one Fusion add-in, installed from the Install tab. Both are thin buttons over the same command line, and <b>neither has been run in the real program yet</b>.</p></div>
+</div>
+<div class="research">
+<a id="resimg" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/docs/research/README.md"><img class="shot" src="research/images/parts-before-after.webp" alt="Three test parts shown as input mesh, Classic result and Staged result: a vase goes from 8,665 faces to 14"></a>
+<div><h2>Research notes</h2><p>Why is turning a mesh into STEP so slow, and why do the results have so many faces? We published a plain-English summary, with pictures, of a research report on exactly that. The short answer: the slow fallbacks are the real cost, so claim the exact shapes (flats, holes, lathe shapes, extrusions) <em>first</em> and only fit the organic rest. Parts of it are already in the toolbox as the experimental Staged and Ladder engines; the rest is a plan, and the open questions are listed so others can help. A second round covers cheap machine vision (mostly: don't render, count normals), how the techniques combine, and easy-things-first with guesstimated leftovers.</p>
+<a class="btn" id="res" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/docs/research/README.md">Read the research notes</a><a class="btn o" id="resfull" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/docs/research/FULL_REPORT.md">Full report with sources</a>
+<p style="font-size:14px;color:var(--mut);margin-top:10px">Written with AI assistance and not independently verified; check the sources.</p></div>
+</div>
+<h2>Install</h2>
+<ol><li>Download the zip from Releases (or clone the repo) and unzip it anywhere.</li>
+<li>Double-click <code>Twoo STEP CAD Toolbox (Mac).command</code>, <code>Twoo STEP CAD Toolbox (Windows).bat</code> or <code>twoo-step-cad-toolbox-linux.sh</code>. The first start downloads a private Python and libraries (a few minutes).</li>
+<li>Your browser opens the app. Drop a mesh, choose the units, press Convert.</li></ol>
+<h2>Screens</h2>
+<p style="color:var(--mut);font-size:14px">Taken from 0.10.2, the version this was built from; the pages are generated the same way, but the old Plugins tab is now called Install and the title says Twoo STEP CAD Toolbox.</p>
+<div class="grid"><img class="shot" src="images/convert-done.webp" alt="Convert tab"><img class="shot" src="images/hardpoints-tab.webp" alt="Hardpoints tab"><img class="shot" src="images/scad-tab.webp" alt="SCAD to STEP tab"><img class="shot" src="images/image-tab.webp" alt="Image to STEP tab"><img class="shot" src="images/diagnostic.webp" alt="Preview window with the diagnostic panel: QR code, settings and result"><img class="shot" src="images/image-colours.webp" alt="Image to STEP tab tracing every colour change of an icon"><img class="shot" src="images/jetwash.webp" alt="Jetwash tab"></div>
+<footer>Required Notice: Copyright Matthew Armstrong (<a href="https://github.com/The-Dorkknight">github.com/The-Dorkknight</a>). Source-available · Non-commercial — <a id="lic" href="https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/LICENSE.md">PolyForm Noncommercial License 1.0.0</a>. Provided as is, with no warranty and no liability; check converted files before relying on them. Not legal advice.</footer>
+</div>
+<script>
+(function(){var o="The-Dorkknight",r="twoo-step-cad-toolbox",h=location.hostname,p=location.pathname.split("/").filter(Boolean);
+if(/\.github\.io$/.test(h)){o=h.split(".")[0];if(p[0])r=p[0]}
+var b="https://github.com/"+o+"/"+r;
+document.getElementById("dl").href=b+"/releases";document.getElementById("repo").href=b;document.getElementById("lic").href=b+"/blob/main/LICENSE.md";
+document.getElementById("res").href=b+"/blob/main/docs/research/README.md";document.getElementById("resimg").href=b+"/blob/main/docs/research/README.md";document.getElementById("resfull").href=b+"/blob/main/docs/research/FULL_REPORT.md"})();
+</script></body></html>

@@ -1,0 +1,22 @@
+<section id="p-hp" class="hide">
+ <div class="card"><h2>Hardpoint STL</h2>
+  <p class="hint" style="margin:0 0 10px">A <b>hardpoint STL</b> is an ordinary binary STL that also remembers which CAD face every triangle came from (flat, cylinder, sphere, cone, torus, freeform) and where the face corners are. The labels live in bytes every STL already has, so slicers and viewers open it as a normal mesh, while Twoo STEP CAD Toolbox can skip guessing and rebuild each face as the surface it really was. The FreeCAD and Fusion plugins write them (<i>Export hardpoint STL</i>), and this tab can make one from any plain STL. Format: <code>HARDPOINT_STL.md</code>.</p>
+  <div class="drop" id="d-hp"><b>Drop an STL here</b> (a hardpoint STL or a plain one)<br>or click to choose</div>
+  <div class="row"><span class="hint" id="f-hp">No file chosen</span></div>
+  <div id="hp-info" class="hide" style="margin-top:10px"></div>
+ </div>
+ <div class="card"><h2>What to do with it</h2>
+  <div class="grid">
+   <label>Input units <select id="hp-units"><option value="mm">mm</option><option value="inches">inches</option><option value="cm">cm</option><option value="m">m</option></select></label>
+   <label>Tolerance, mm (0 = auto) <input type="number" id="hp-tol" value="0" min="0" step="0.01"></label>
+   <label>Surface fitter <select id="hp-engine" style="width:200px"><option value="classic">Classic (recommended)</option><option value="staged">Staged (experimental)</option><option value="ladder">Ladder (experimental)</option></select></label>
+  </div>
+  <p class="hint" style="margin:8px 0 12px">A hardpoint STL carries its own units; the setting above only applies to plain STLs. Each labelled face is checked against the tolerance before it is trusted; a face that does not fit its label goes through the normal detection instead.</p>
+  <div class="go"><button class="btn" id="b-hp" onclick="runHp('labels')" disabled>Convert using the labels</button>
+   <button class="btn2" id="b-hp-nolab" onclick="runHp('nolabels')" disabled title="Same file, labels ignored: find the faces from scratch (to compare)">Convert ignoring the labels</button>
+   <button class="btn2" id="b-hp-make" onclick="runHp('make')" disabled title="Converts to STEP and also writes the same mesh as a hardpoint STL carrying the faces that were found">Convert and make a hardpoint STL</button>
+   <button class="btn cx hide" id="x-hp" onclick="cancelJob('hp')">Cancel</button></div>
+  <div class="alive" id="al-hp"></div>
+  <div class="bar"><i id="bar-hp"></i></div><pre id="log-hp"></pre>
+  <div class="result" id="res-hp"></div></div>
+</section>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>TOSTEP</name>
+  <description>WORK IN PROGRESS. Convert meshes to real STEP solids (planes, cylinders, spheres, NURBS), jetwash junk out of STEP files, and export STLs that remember their CAD faces. Converting and jetwash use the portable Twoo STEP CAD Toolbox app.</description>
+  <version>0.11.0</version>
+  <maintainer email="The-Dorkknight@users.noreply.github.com">Matthew Armstrong</maintainer>
+  <license>PolyForm-Noncommercial-1.0.0</license>
+  <icon>Resources/icons/tostep.svg</icon>
+  <content>
+    <workbench>
+      <classname>TOSTEPWorkbench</classname>
+      <subdirectory>./</subdirectory>
+      <freecadmin>0.20</freecadmin>
+    </workbench>
+  </content>
+</package>

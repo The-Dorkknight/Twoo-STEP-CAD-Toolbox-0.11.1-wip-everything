@@ -1,0 +1,280 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# mesh2step: STL / OBJ / PLY / 3MF mesh -> solid STEP. Contract 1 (docs/PLUGIN_CONTRACT.md).
+contract = 1
+id = "mesh2step"
+name = "Mesh to STEP"
+version = "0.10.2"
+status = "stable"
+summary = "Rebuilds a triangle mesh as a real STEP solid: planes, cylinders, spheres and fitted NURBS surfaces."
+kind = "convert"
+entry = "tostep.plugins.mesh2step:run"
+
+[io]
+inputs = [".stl", ".obj", ".ply", ".3mf", ".off"]
+output = "{stem}.step"
+reject = "Convert needs a mesh file (STL, OBJ, PLY, 3MF)"
+chain = true
+
+[cli]
+command = "convert"
+hooks = "tostep.plugins.mesh2step.cli"
+
+[web]
+tab = "conv"
+title = "STL → STEP"
+order = 10
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+style = "ui/tab.css"
+routes = "tostep.plugins.mesh2step.web"
+
+[[cad]]
+id = "convert"
+label = "Mesh → STEP solid"
+tooltip = "Turn mesh bodies into real solids: planes, cylinders, spheres and fitted NURBS surfaces."
+input = "mesh"
+
+[[params]]
+name = "units"
+type = "choice"
+choices = ["mm", "inches", "cm", "m"]
+default = "mm"
+help = "Units the mesh was modelled in. The STEP is always written in mm."
+
+[[params]]
+name = "mode"
+type = "choice"
+choices = ["surface", "faceted", "extrude", "loft"]
+default = "surface"
+help = "surface/faceted rebuild the mesh; extrude/loft (EXPERIMENTAL) redraw it from its 2D outline."
+
+[[params]]
+name = "engine"
+type = "choice"
+choices = ["classic", "staged", "ladder", "v2", "best", "quad", "auto"]
+default = "classic"
+help = "Surface fitter. classic (default); auto = the Standard preset (the part's shape picks the engine); ladder = Quick; quad = EXPERIMENTAL quad patches for smooth organic parts; staged = EXPERIMENTAL roughing first; v2 = EXPERIMENTAL fitter; best = EXPERIMENTAL second pass (Fine)."
+
+[[params]]
+name = "tol"
+type = "float"
+default = 0.0
+min = 0.0
+help = "Fit tolerance in mm (0 = automatic)."
+
+[[params]]
+name = "plane_angle"
+type = "float"
+default = 3.0
+help = "Degrees: triangles whose normals differ by less than this count as one flat face."
+advanced = true
+
+[[params]]
+name = "crease_angle"
+type = "float"
+default = 30.0
+help = "Degrees: an edge sharper than this is a crease and ends a surface patch."
+advanced = true
+
+[[params]]
+name = "patch_size"
+type = "float"
+default = 30.0
+help = "Largest surface patch, as a percent of the part (the command line takes a fraction: 0.30)."
+advanced = true
+
+[[params]]
+name = "max_bend"
+type = "float"
+default = 60.0
+help = "Degrees: the most a single fitted patch may bend."
+advanced = true
+
+[[params]]
+name = "decimate"
+type = "int"
+default = 0
+help = "Reduce to N triangles first (0 = off). Flat faces, holes and sharp edges are found first and kept exact; only region interiors are simplified."
+advanced = true
+
+[[params]]
+name = "smooth"
+type = "int"
+default = 0
+help = "Denoise iterations for scanned meshes (0 = off)."
+advanced = true
+
+[[params]]
+name = "primitives"
+type = "bool"
+default = true
+help = "Detect cylinders and spheres and build them as exact faces."
+advanced = true
+
+[[params]]
+name = "memory_guard"
+type = "bool"
+default = true
+help = "Reduce meshes that are too big for this computer's memory instead of crashing."
+advanced = true
+
+[[params]]
+name = "guess"
+type = "bool"
+default = false
+help = "Guesstimate organic areas: freeform surfaces may be up to organic_tol off; flat faces, round holes and edges keep the normal tolerance. Much faster on dense organic meshes. Classic fitter only."
+advanced = true
+
+[[params]]
+name = "organic_tol"
+type = "float"
+default = 0.3
+min = 0.0
+help = "mm: how far a freeform surface may sit from the mesh when guess is on."
+advanced = true
+
+[[params]]
+name = "use_labels"
+type = "bool"
+default = true
+help = "A hardpoint STL carries its CAD faces; use them. Off = find the faces from scratch."
+advanced = true
+
+[[params]]
+name = "save_labelled"
+type = "path"
+default = ""
+help = "Also write the input mesh as a hardpoint STL carrying the faces found, to this path."
+advanced = true
+
+[[params]]
+name = "route"
+type = "choice"
+choices = ["auto", "prismatic", "lathe", "organic", "mixed"]
+default = "auto"
+help = "Ladder engine: force the route instead of reading it off the mesh."
+advanced = true
+
+[[params]]
+name = "ladder_guess"
+type = "bool"
+default = true
+help = "Ladder engine: guesstimate problem areas instead of refining them for minutes (off = fit exactly or keep facets)."
+advanced = true
+
+[[params]]
+name = "ladder_rough"
+type = "bool"
+default = true
+help = "Ladder engine, prismatic parts: extruded-outline roughing first."
+advanced = true
+
+[[params]]
+name = "budget_s"
+type = "float"
+default = 0.0
+min = 0.0
+help = "Seconds; when passed, patches still outside tolerance become facets at once (0 = the performance profile's ceiling)."
+advanced = true
+
+[[params]]
+name = "max_fills"
+type = "int"
+default = 0
+min = 0
+help = "Most slow plate fills per conversion (0 = the profile's allowance)."
+advanced = true
+
+[[params]]
+name = "gap_fill"
+type = "choice"
+choices = ["plate", "coons+plate", "coons", "off"]
+default = "plate"
+help = "A freeform patch the normal fit misses: plate filler (default); coons = EXPERIMENTAL four-sided Coons patch on its outline, inside fitted to the mesh (D18); coons+plate = Coons first, plate filler where it misses; off = neither."
+advanced = true
+
+[[params]]
+name = "plane_rule"
+type = "choice"
+choices = ["classic", "length"]
+default = "classic"
+help = "Flat-face border test: by edge count (classic) or edge length (keeps coarse cylinder facets from passing as flats; can drop tiny real flats)."
+advanced = true
+
+[[params]]
+name = "axis"
+type = "choice"
+choices = ["x", "y", "z"]
+default = "z"
+help = "extrude/loft (EXPERIMENTAL): the direction to look along."
+group = "outline"
+
+[[params]]
+name = "source"
+type = "choice"
+choices = ["silhouette", "slice"]
+default = "silhouette"
+help = "extrude: the whole-part outline, or an exact cross-section."
+group = "outline"
+
+[[params]]
+name = "slice_at"
+type = "float"
+default = 0.0
+nullable = true
+help = "extrude slice: mm along the axis (blank = the middle)."
+group = "outline"
+
+[[params]]
+name = "height"
+type = "float"
+default = 0.0
+min = 0.0
+help = "extrude: mm (0 = the part's own height)."
+group = "outline"
+
+[[params]]
+name = "simplify"
+type = "float"
+default = 0.0
+min = 0.0
+help = "extrude/loft: outline tolerance in mm (0 = automatic)."
+group = "outline"
+
+[[params]]
+name = "smooth_sketch"
+type = "bool"
+default = false
+help = "extrude (EXPERIMENTAL): redraw each outline loop as lines, arcs, circles, ellipses and splines instead of many straight segments."
+group = "outline"
+
+[[params]]
+name = "symmetric"
+type = "bool"
+default = false
+help = "extrude: split the height both ways around the cross-section (or the part's middle)."
+group = "outline"
+
+[[params]]
+name = "heights"
+type = "str"
+default = ""
+help = "loft: use these slice heights (mm along the axis, comma separated) instead of picking them."
+group = "outline"
+
+[[params]]
+name = "max_slices"
+type = "int"
+default = 15
+min = 2
+help = "loft: the most cross-sections used."
+group = "outline"
+
+[[params]]
+name = "sensitivity"
+type = "float"
+default = 0.02
+min = 0.0
+help = "loft: lower = more slices."
+group = "outline"

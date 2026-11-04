@@ -1,0 +1,15 @@
+.pre{display:grid;gap:10px}
+.pre button{display:grid;grid-template-columns:130px 190px 220px 1fr;align-items:center;gap:18px;padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);cursor:pointer;text-align:left;font:inherit;min-height:104px}
+.pre button:hover{border-color:var(--mute)}
+.pre .ph b{display:block;font-size:19px}.pre .ph small{color:var(--mute);font-size:12px}
+.pre button.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}.pre button.on .ph b{color:var(--acc)}
+.bb{display:grid;grid-template-columns:54px 1fr;gap:7px 8px;align-items:center;font-size:12px;color:var(--mute)}
+.bb u{display:flex;gap:2px;text-decoration:none}.bb i{flex:1;height:13px;border-radius:2px;background:#d9dde5}
+.bb u.r i.on{background:#e5392e;box-shadow:0 0 4px #e5392e99}.bb u.g i.on{background:#25b84a;box-shadow:0 0 4px #25b84a99}
+@media (prefers-color-scheme:dark){.bb i{background:#2c3340}}
+.pre .pic svg{width:100%;height:auto;display:block}
+.pre .pcap{display:grid;grid-template-columns:38% 1fr;gap:6px;font-size:11px;color:var(--mute);margin-top:2px}
+.pre .pl{font-size:13px;color:var(--mute);line-height:1.45}
+@media (max-width:820px){.pre button{grid-template-columns:1fr 1fr;gap:12px}.pre .pic,.pre .pl{grid-column:1/-1}.pre .pic{max-width:300px}}
+#p-conv.simple .adv{display:none!important}
+.eng{align-items:flex-start;margin:4px 0}

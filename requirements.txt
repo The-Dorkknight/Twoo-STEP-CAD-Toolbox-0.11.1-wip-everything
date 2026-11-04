@@ -1,0 +1,13 @@
+# Python 3.11 – 3.14 (Windows x64, macOS 12+ Intel & Apple Silicon, Linux x64/arm64)
+cadquery-ocp>=8.0,<9
+trimesh>=4.0
+numpy
+scipy>=1.10
+rtree>=1.0
+pyfqmr>=0.2
+mapbox-earcut>=1.0
+shapely>=2.0
+networkx>=3.0
+psutil>=5.9
+opencv-python-headless>=4.7
+segno>=1.5

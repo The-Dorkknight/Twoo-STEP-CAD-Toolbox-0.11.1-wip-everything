@@ -1,0 +1,69 @@
+<section id="p-conv">
+ <div class="card"><h2>Mesh</h2>
+  <div class="drop" id="d-conv"><b>Drop an STL / OBJ / PLY / 3MF here</b><br>or click to choose</div>
+  <div class="row"><label>Input units <select id="units"><option value="mm">mm</option><option value="inches">inches</option><option value="cm">cm</option><option value="m">m</option></select></label><span class="hint">STEP is always written in mm</span></div>
+ </div>
+ <div class="card" id="qcard-pre"><h2>Quality</h2>
+  <div class="pre" id="pre-btns" role="radiogroup" aria-label="Quality preset"></div>
+  <p class="hint" id="pre-d" style="margin:10px 0 0"></p>
+ </div>
+ <div class="card mode adv" id="modecard"><h2>Mode</h2>
+  <label><input type="radio" name="mode" value="surface" checked> <span><b>Smooth surfaces</b><br><small>Planes, cylinders, spheres + fitted NURBS patches — editable CAD</small></span></label>
+  <label><input type="radio" name="mode" value="faceted"> <span><b>Exact facets</b><br><small>Every triangle kept, flat areas merged — fast, always works</small></span></label>
+  <label><input type="radio" name="mode" value="extrude"> <span><b>Extrude outline</b> <i class="x">experimental</i><br><small>Redraw the part from its 2D outline (or a cross-section) — ideal clean plates, brackets, logos; round holes become true circles</small></span></label>
+  <label><input type="radio" name="mode" value="loft"> <span><b>Loft cross-sections</b> <i class="x">experimental</i><br><small>A few slices where the profile changes, lofted into one smooth solid — tapered / stepped parts</small></span></label>
+ </div>
+ <div class="card hide adv" id="prof"><h2>Outline</h2><div class="grid">
+  <label>Axis (look along) <select id="axis"><option value="z">Z (from top)</option><option value="y">Y</option><option value="x">X</option></select></label>
+  <label>Outline tolerance, mm (0 = auto) <input type="number" id="simp" value="0" min="0" step="0.05"></label>
+  <label class="ex">Outline from <select id="src"><option value="silhouette">whole part (silhouette)</option><option value="slice">cross-section</option></select></label>
+  <label class="ex">Cross-section at, mm (blank = middle) <input type="number" id="sliceat" step="0.1"></label>
+  <label class="ex">Extrude height, mm (0 = part's height) <input type="number" id="height" value="0" min="0" step="0.5"></label>
+  <label class="ex" title="Redraw each outline loop as a few lines, arcs, circles, ellipses and splines instead of many straight segments. An oval hole becomes one ellipse or one spline. Press Preview outline to see it: red dots mark where two pieces meet.">Smooth sketch (curves instead of segments) <input type="checkbox" id="ssk"></label>
+  <label class="ex" title="Splits the extrude height both ways around the cross-section (or the part's middle) instead of going up from the bottom">Extrude symmetric (both directions) <input type="checkbox" id="sym"></label>
+  <label class="lo" title="Your own slice heights, in mm along the axis, instead of picking them automatically. Blank = automatic">Slice heights, mm (blank = auto) <input type="text" id="heights" placeholder="e.g. 2, 10, 30" style="width:130px;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit"></label>
+  <label class="lo">Max slices <input type="number" id="maxs" value="15" min="2" max="60" step="1"></label>
+  <label class="lo" title="Lower = picks up subtler shape changes (more slices)">Slice sensitivity <input type="number" id="sens" value="0.02" min="0.001" max="0.5" step="0.005"></label>
+ </div>
+ <div class="row"><button class="btn2" id="b-prev" onclick="preview()" disabled>Preview outline</button><span class="hint" id="prev-i"></span></div>
+ <div id="prev"></div></div>
+ <div class="card adv" id="settings"><h2>Settings</h2><p class="legend">LEDs: <s style="background:#e5392e"></s>red = how hard it works your computer &middot; <s style="background:#25b84a"></s>green = quality of the result. (Red high + green high = slow but perfect.)</p><div class="grid">
+  <label>Tolerance, mm (0 = auto) <input type="number" id="tol" value="0" min="0" step="0.01"></label>
+  <label>Max patch size <span><input type="range" id="patch" min="10" max="80" value="30"> <span id="patch-v">30%</span></span></label>
+  <label>Plane detection angle ° <input type="number" id="plane" value="3" min="0.1" step="0.5"></label>
+  <label>Max patch bend <span><input type="range" id="bend" min="20" max="80" value="60"> <span id="bend-v">60°</span></span></label>
+  <label>Sharp-edge angle ° <input type="number" id="crease" value="30" min="1" step="1"></label>
+  <label>Detect cylinders / spheres <input type="checkbox" id="prim" checked></label>
+  <label title="Finds flat faces, holes and sharp edges first, then simplifies only inside them — outlines stay exact">Reduce to N triangles (0 = off) <input type="number" id="dec" value="0" min="0" step="1000"></label>
+  <label>Denoise iterations (scans) <input type="number" id="smooth" value="0" min="0" step="1"></label>
+  <label title="Meshes too big for this computer's memory are reduced automatically instead of crashing">Protect memory (auto-reduce huge meshes) <input type="checkbox" id="memg" checked></label>
+  <label title="Flat faces, round holes and edges keep the normal tolerance. Only freeform (organic) areas are loosened. Dense meshes are first reduced without moving any outline, the slow patch filler is skipped, and the result is checked against the full original mesh. Classic and Staged fitters.">Guesstimate organic areas (fast) <input type="checkbox" id="guess" onchange="$('otol').disabled=!this.checked"></label>
+  <label title="How far a freeform surface may sit from the mesh inside a patch">Organic tolerance, mm <input type="number" id="otol" value="0.3" min="0.05" max="2" step="0.05" disabled></label>
+  <label title="After this many seconds a conversion stops refining: patches still outside the tolerance become exact facets at once, so it finishes. 0 = the performance profile's ceiling (40 min on most computers)">Stop refining after, s (0 = profile) <input type="number" id="budget" value="0" min="0" step="30"></label>
+  <label title="For a freeform patch the normal fit misses. Plate filler: as before. Coons (experimental, D18 in the research paper): a four-sided Coons patch on the patch's own outline with its inside fitted to the mesh; on the test blob within the tolerance on 8 of 13 hard patches against 2 of 13 for the plate filler, but about twice as slow per patch, and whole parts came out about the same. Coons, then plate: the plate filler only where Coons misses too. Classic, Staged and Ladder fitters">Gap filler <select id="gapf"><option value="plate" selected>Plate filler (default)</option><option value="coons+plate">Coons, then plate (experimental)</option><option value="coons">Coons only (experimental)</option><option value="off">None (faster, more facets)</option></select></label>
+ </div>
+ <h2 style="margin-top:16px">Surface fitter</h2>
+  <label class="eng"><input type="radio" name="engine" value="classic" checked> <span><b>Classic</b> — the original converter (Standard used it until 0.10.2): every part fitted the same way</span></label>
+  <label class="eng"><input type="radio" name="engine" value="auto"> <span><b>Auto</b> — what the Standard preset uses: the part's shape picks the engine. Smooth organic parts go to Quad patches (within the tolerance, no facets); everything else, and organic parts Quad patches can't do well, to the Ladder engine</span></label>
+  <label class="eng"><input type="radio" name="engine" value="staged"> <span><b>Staged</b> <i class="x">experimental</i> — roughing first: lathe shapes (with cylinders, cones and spheres) and extruded freeform outlines become exact faces before any patch fitting, with sturdier face outlines. Far fewer faces and usually faster on turned, round or prismatic parts; organic areas are fitted as in Classic. On big dense organic scans, tick Guesstimate with it (without, it can be slower than Classic)</span></label>
+  <label class="eng"><input type="radio" name="engine" value="ladder"> <span><b>Ladder</b> <i class="x">experimental</i> — easy things first: the mesh is looked at for a few milliseconds and routed as prismatic, lathe, organic or mixed; exact shapes are claimed before anything slow runs, dead-end searches are skipped, and problem areas are guesstimated (within the Guesstimate tolerance) or kept as facets instead of being refined for minutes. Usually faster than Classic with the same or better result on the test parts; untested on scans</span></label>
+  <label class="eng"><input type="radio" name="engine" value="v2"> <span><b>v2 fitter</b> <i class="x">experimental</i> — adaptive NURBS, stricter checks; can give more faces or facets on some parts</span></label>
+  <label class="eng"><input type="radio" name="engine" value="best"> <span><b>Second pass</b> <i class="x">experimental</i> — run Classic, then v2, keep whichever is better (takes about twice as long)</span></label>
+  <label class="eng"><input type="radio" name="engine" value="quad"> <span><b>Quad patches</b> <i class="x">experimental</i> — for smooth organic parts (figures, blobs, sculpted shapes): the mesh is laid out as quads that follow its curvature (QuadriFlow, or Instant Meshes), every quad becomes one untrimmed surface fitted to the mesh, and neighbours meet exactly along shared curves. Parts with flat faces or sharp edges are handed to Classic instead</span></label>
+ </div>
+<div class="card" id="gpucard"><h2>Graphics card</h2>
+  <p class="hint" style="margin:0 0 8px">Every card the computer lists is shown with what it needs. The card speeds up <b>one step</b>: the shape scoring of the v2 fitter, which the <i>Fine</i> preset and <i>Second pass</i> use. Quick, Standard and Classic do not use it: their work (OpenCASCADE) only runs on the processor. Nothing here is needed for a good result.</p>
+  <div id="gpu-cards"><span class="hint">Looking…</span></div>
+  <div class="row"><label>Use the graphics card where it works <input type="checkbox" id="gpu-ck" onchange="perfSet()"></label><button class="btn2" id="gpu-test" onclick="gpuTest()">Test it</button><button class="btn2" id="gpu-look" onclick="gpuLook()">Look again</button></div>
+  <pre id="gpu-log" style="display:none;min-height:40px;margin-top:8px;max-height:220px;overflow:auto"></pre>
+ </div>
+<div class="card adv" id="perfcard"><h2>Performance</h2>
+  <div class="row" id="prof-row"><label>Profile <select id="prof-sel" onchange="perfSet()" style="width:130px"><option value="auto">Auto</option><option value="potato">Potato</option><option value="moderate">Moderate</option><option value="extreme">Extreme</option></select></label><span class="hint" id="prof-d"></span></div>
+  <p class="hint" id="prof-hw" style="margin:8px 0 0"></p>
+  <p class="hint" style="margin:8px 0 0">Profiles set how many CPU threads the maths libraries use, process priority, how many queued files run at once and whether Classic and v2 run side by side in <i>Second pass</i>. The graphics card is set in the <i>Graphics card</i> box above.</p>
+ </div>
+ <div class="card"><div class="go"><button class="btn" id="b-conv" onclick="runConv()" disabled>Convert</button><span class="hint">Start</span><select id="when" onchange="$('whent').classList.toggle('hide',this.value!=='at')" style="width:140px"><option value="now">now</option><option value="1h">in 1 hour</option><option value="3h">in 3 hours</option><option value="tonight">tonight 01:00</option><option value="at">at a time…</option></select><input type="time" id="whent" class="hide" value="01:00" style="width:110px"><button class="btn cx hide" id="x-conv" onclick="cancelJob('conv')">Cancel</button><span class="hint" id="f-conv">No file chosen</span></div>
+  <div class="alive" id="al-conv"></div>
+  <div class="bar"><i id="bar-conv"></i></div><pre id="log-conv"></pre>
+  <div class="result" id="res-conv"></div></div>
+</section>

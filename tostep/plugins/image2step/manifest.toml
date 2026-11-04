@@ -1,0 +1,78 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# image2step: photo / scan / drawing of a flat part -> its outline as real CAD curves -> STEP. Contract 1.
+# The tracer is the ImageToSketch library (imagetosketch/), which validates its own settings; the
+# parameter list below documents what the page and the command line send.
+contract = 1
+id = "image2step"
+name = "Image to STEP"
+version = "0.10.2"
+status = "experimental"
+summary = "Traces a photo, scan or drawing of a flat part and writes its outline as STEP: a solid of the thickness you give, or the flat shape."
+kind = "image"
+entry = "tostep.plugins.image2step:run"
+
+[io]
+inputs = [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"]
+output = "{stem}.step"
+reject = "Image → STEP needs a picture (PNG, JPG, BMP, TIFF, WebP)"
+mesh_preview = false
+chain = true
+raw_params = true
+
+[cli]
+command = "image"
+hooks = "tostep.plugins.image2step.cli"
+
+[web]
+tab = "img"
+title = "Image → STEP"
+order = 40
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+routes = "tostep.plugins.image2step.web"
+
+[[params]]
+name = "scale"
+type = "choice"
+choices = ["calsheet", "token", "markers", "dpi", "image_width", "mm_per_px", "square"]
+default = "token"
+help = "Where the picture's scale comes from: the calibration sheet, a printed scale token, the marker sheet, the file's resolution, the picture's real width, a known mm per pixel, or a plain square of known size."
+
+[[params]]
+name = "thickness"
+type = "float"
+default = 0.0
+min = 0.0
+help = "mm: the solid's thickness. 0 writes the flat outline as a face."
+
+[[params]]
+name = "curves_only"
+type = "bool"
+default = false
+help = "Write only the curves, no face (some CAD programs skip bare curves in STEP)."
+
+[[params]]
+name = "borderline"
+type = "bool"
+default = false
+help = "Also write the shapes the tracer marked as borderline."
+
+[[params]]
+name = "also_svg"
+type = "bool"
+default = false
+help = "Also save the outline as SVG next to the STEP."
+
+[[params]]
+name = "also_dxf"
+type = "bool"
+default = false
+help = "Also save the outline as DXF next to the STEP."
+
+[[params]]
+name = "find"
+type = "choice"
+choices = ["tone", "transitions"]
+default = "tone"
+help = "What counts as an edge: tone = the part against its background; transitions = EXPERIMENTAL, every sharp change of colour."

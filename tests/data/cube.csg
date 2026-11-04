@@ -1,0 +1,8 @@
+group() {
+	difference() {
+		cube(size = [20, 10, 6], center = false);
+		multmatrix([[1, 0, 0, 10], [0, 1, 0, 5], [0, 0, 1, -1], [0, 0, 0, 1]]) {
+			cylinder($fn = 48, $fa = 12, $fs = 2, h = 8, r1 = 2, r2 = 2, center = false);
+		}
+	}
+}

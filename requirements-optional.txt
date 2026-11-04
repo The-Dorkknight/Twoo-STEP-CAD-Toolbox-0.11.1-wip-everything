@@ -1,0 +1,4 @@
+# Optional extras: installed by the launchers after requirements.txt, ready-built only (no compiler),
+# and a failure here never stops the app from starting. Instant Meshes (BSD-3) gives the
+# experimental Quad patches engine its quad layout where no QuadriFlow program ships (macOS, Windows).
+pynanoinstantmeshes==0.0.3; (sys_platform == "darwin" and platform_machine == "arm64") or (sys_platform == "win32" and platform_machine == "AMD64") or (sys_platform == "linux" and platform_machine == "x86_64")

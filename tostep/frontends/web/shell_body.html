@@ -1,0 +1,39 @@
+<div id="wip">WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN &middot; v__VERSION__</div>
+<div id="disc"><div class="box"><h2>Before you start</h2>
+<p>Twoo STEP CAD Toolbox is <b>source-available, non-commercial software</b> (PolyForm Noncommercial 1.0.0) and is a
+work in progress. It is provided <b>as is, with no warranty and no liability</b>. Check converted and cleaned
+files before you rely on them (parts you will machine, print or sell in particular). It only reads your
+input files and writes new files into the Output folder; it never overwrites your originals.</p>
+<label><input type="checkbox" id="disc-ck" onchange="$('disc-ok').disabled=!this.checked"> I have read this and I agree</label>
+<div class="row" style="margin-top:12px"><button class="btn" id="disc-ok" disabled onclick="discOk()">I agree</button>
+<button class="link" onclick="quitApp()">Quit</button></div></div></div>
+<div id="about"><div class="box"><h2>About Twoo STEP CAD Toolbox __VERSION__</h2>
+<p><b>WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN.</b></p>
+<p>Required Notice: Copyright Matthew Armstrong (<a href="https://github.com/The-Dorkknight" target="_blank" rel="noopener">github.com/The-Dorkknight</a>)<br>
+Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.</p>
+<p>Third-party libraries keep their own licences (see THIRD_PARTY.md).</p>
+<button class="btn2" onclick="$('about').style.display='none'">Close</button></div></div>
+<header><h1>Twoo STEP CAD Toolbox<small>v__VERSION__</small></h1><nav><!--NAV--></nav><span class="sp"></span>
+<span id="mon"><span id="lcd" title="CPU %">00%</span>
+<span><span class="mlab">CPU</span><span id="vu" title="CPU use"></span></span>
+<span title="Disk activity"><span class="mlab">DISK</span><span id="led"></span></span>
+<span title="Heartbeat: blinks every second while a job runs (amber = quiet for a while)"><span class="mlab">RUN</span><span class="lamp" id="hb"></span></span>
+<span title="Decorative — not functional (yet)"><svg id="key" width="78" height="46" viewBox="0 0 78 46" onclick="keyTurn()"><text x="3" y="9" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">LOCK</text><text x="29" y="6" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">NORM</text><text x="50" y="9" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">TURBO</text>
+<circle cx="39" cy="29" r="14" fill="#6e6856"/><circle cx="39" cy="29" r="11" fill="#d8d3c2" stroke="#2b2820"/><g class="k" id="keyk" style="transform:rotate(0deg);transform-origin:39px 29px"><rect x="35.5" y="19" width="7" height="12" rx="2" fill="#2b2820"/><circle cx="39" cy="29" r="2" fill="#b7a96a"/></g></svg><span class="lamp amb" id="turbo"></span></span></span>
+<button class="link" onclick="api('/api/open-output',{})">Output folder</button><button class="link" onclick="$('about').style.display='flex'">About</button><button class="link" onclick="quitApp()">Quit</button></header>
+<main>
+<!--SECTIONS-->
+</main>
+<input type="file" id="pick" class="hide">
+<div id="viewer"><div class="box"><div class="bar2"><b>Preview</b>
+ <button class="btn2" id="v-res" onclick="vshow('result')">Result</button><button class="btn2" id="v-mesh" onclick="vshow('mesh')">Original</button>
+ <span class="hint" id="v-info"></span><span class="sp" style="flex:1"></span>
+ <span class="hint"><span class="sw" style="background:#5c8cf2"></span>flat<span class="sw" style="background:#54c773"></span>cylinder/sphere<span class="sw" style="background:#d1d4db"></span>smooth NURBS<span class="sw" style="background:#33363d"></span>facets</span>
+ <button class="btn2 on" id="v-dbtn" onclick="diagToggle()" title="Settings and result of this job as a QR code and in words: one screenshot of this window is a complete report">Diagnostic</button>
+ <button class="btn2" onclick="$('viewer').style.display='none'">Close</button></div>
+ <div class="vrow"><canvas id="gl"></canvas>
+  <aside id="v-diag"><h3>Diagnostic <span class="hint" style="font-weight:400">screenshot this window</span></h3>
+   <canvas id="v-qr" width="10" height="10" aria-label="QR code with this job's settings and result"></canvas>
+   <div class="hint" id="v-qrn"></div><div id="v-rows"></div><code id="v-code" title="The same as the QR, as text. Read it back with: tostep diag CODE (or give it a screenshot)"></code>
+   <button class="btn2" style="padding:4px 10px" onclick="diagCopy()" title="The code holds the settings and numbers shown here, the app version and the time. Not the file name, the log or anything about this computer. Nothing is sent anywhere">Copy code</button> <span class="hint" id="v-copied">holds what is listed here; no file name, nothing is sent</span></aside></div>
+ <div class="hint" style="padding:6px 14px">Drag: rotate · Scroll: zoom · Right-drag or Shift-drag: pan · Double-click: reset</div></div></div>

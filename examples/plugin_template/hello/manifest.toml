@@ -1,0 +1,35 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# The smallest useful plug-in: it counts the lines of a text file and writes the count. Contract 1.
+# Copy this folder, rename it, change "id" and "kind", and put your own code in __init__.py.
+contract = 1
+id = "hello"                     # folder name = id; lower-case letters, digits, _
+name = "Hello"
+version = "1.0.0"
+status = "experimental"          # "stable" only once it has tests and has earned it
+summary = "Counts the lines of a text file (an example plug-in)."
+kind = "hello"                   # the job kind. FROZEN once released: it appears inside diagnostic codes.
+entry = "hello:run"              # package.module:function. The package name is the folder name.
+
+[io]
+inputs = [".txt"]
+output = "{stem}_lines.txt"
+reject = "Hello reads .txt files"
+preview = false                  # the result is not a STEP, so no 3D preview (and no diagnostic panel)
+
+[cli]
+command = "hello"                # tostep hello notes.txt
+hooks = "hello.cli"              # optional: extra command-line options
+
+[web]
+tab = "hello"                    # becomes a tab on the page; 1-12 lower-case letters/digits
+title = "Hello"
+order = 90
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+
+[[params]]
+name = "skip_blank"
+type = "bool"
+default = false
+help = "Do not count empty lines."

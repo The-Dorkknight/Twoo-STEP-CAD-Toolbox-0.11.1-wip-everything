@@ -1,0 +1,31 @@
+<section id="p-scad" class="hide">
+ <div class="card"><h2>OpenSCAD model</h2>
+  <p class="hint" style="margin:0 0 10px">Rebuilds an OpenSCAD model as real CAD geometry (true cylinders, cones, spheres, arcs, swept surfaces and exact booleans), instead of exporting a mesh and guessing at it afterwards. Needs <a href="https://openscad.org" target="_blank" rel="noopener">OpenSCAD</a> installed, except for <code>.csg</code> files. Engine: SCAD2STEP.</p>
+  <div class="row" style="margin-top:0"><button class="btn" onclick="scBrowse()">Choose a .scad…</button>
+   <input type="text" id="sc-path" placeholder="…or paste a full path and press Enter" style="flex:1;min-width:240px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit"></div>
+  <div class="row" id="sc-recent" style="margin-top:8px"></div>
+  <div class="drop" id="d-scad" style="margin-top:10px;padding:14px"><b>Or drop a .scad / .csg here</b> <span class="hint">(a dropped file has no libraries beside it and no live link)</span></div>
+  <div class="row"><span id="sc-chosen" class="hide"><b id="sc-name"></b> <span class="hint" id="sc-wpath"></span> <button class="btn2" id="sc-open" onclick="scOpenIn()">Open in OpenSCAD</button></span></div>
+  <p class="hint" id="sc-os" style="margin:10px 0 0"></p>
+  <div class="row hide" id="sc-oscfg"><input type="text" id="sc-ospath" placeholder="Location of OpenSCAD (program or AppImage)" style="flex:1;min-width:240px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit"><button class="btn2" onclick="scSaveOs()">Use this</button><button class="btn2" onclick="scFindOs()">Look again</button></div>
+ </div>
+ <div class="card hide" id="sc-pcard"><h2>Parameters</h2>
+  <p class="hint" style="margin:0 0 8px">The model's own Customizer variables. Change them to export a variant without editing the file. Applies to <i>Convert</i>, not to the live link.</p>
+  <div class="grid" id="sc-params"></div>
+  <div class="row"><button class="btn2" onclick="scRescan()">Re-read from file</button><button class="btn2" onclick="scDrawParams({})">Reset to the file's values</button></div>
+ </div>
+ <div class="card"><h2>Options</h2><div class="grid">
+  <label title="What one OpenSCAD unit means. STEP is always written in mm">Units <select id="sc-units"><option value="mm">mm</option><option value="inches">inches</option><option value="cm">cm</option><option value="m">m</option></select></label>
+  <label title="A circle with an explicit $fn at or below this stays a polygon (so a $fn=6 nut trap stays a hexagon); a higher $fn becomes truly round">Keep as polygon up to $fn <input type="number" id="sc-ffn" value="8" min="3" max="64" step="1"></label>
+  <label>Save the STEP <select id="sc-where" style="width:170px"><option value="beside">next to the .scad</option><option value="output">in the Output folder</option></select></label>
+  <label title="Renders the model with OpenSCAD as well and compares volume and size with the STEP">Compare with OpenSCAD's render <input type="checkbox" id="sc-verify" checked></label>
+  <label title="Text and imported 2D outlines become smooth curves instead of many straight pieces">Smooth text outlines <input type="checkbox" id="sc-smooth" checked></label>
+ </div></div>
+ <div class="card"><div class="go"><button class="btn" id="b-scad" onclick="scRun()" disabled>Convert to STEP</button>
+  <button class="btn2" id="b-sc-live" onclick="scLive()" disabled title="Keep a STEP copy updated every time you save the model in OpenSCAD">Live link</button>
+  <button class="btn cx hide" id="x-scad" onclick="cancelJob('scad')">Cancel</button><span class="hint" id="f-scad">No file chosen</span></div>
+  <div class="alive" id="al-scad"></div>
+  <p class="hint hide" id="sc-livebox" style="margin:8px 0 0"><b>Live link on.</b> Save in OpenSCAD (F2) and <code id="sc-lout"></code> is rebuilt within a second or two. <span id="sc-lstate"></span></p>
+  <div class="bar"><i id="bar-scad"></i></div><pre id="log-scad"></pre>
+  <div class="result" id="res-scad"></div></div>
+</section>

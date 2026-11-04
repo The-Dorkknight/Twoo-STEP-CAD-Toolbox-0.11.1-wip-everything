@@ -1,0 +1,14 @@
+<section id="p-hello" class="hide">
+ <div class="card"><h2>File to count</h2>
+  <div class="drop" id="d-hello"><b>Drop a .txt file here</b><br>or click to choose</div>
+ </div>
+ <div class="card"><h2>Options</h2>
+  <div class="row"><label><input type="checkbox" id="hello-skip"> skip blank lines</label></div>
+ </div>
+ <!-- The ids below (d-, f-, b-, x-, al-, bar-, log-, res- plus the tab id) are what the page's start() and watch()
+      look for; copy this block as it is and change only "hello". -->
+ <div class="card"><div class="go"><button class="btn" id="b-hello" onclick="runHello()" disabled>Count lines</button><button class="btn cx hide" id="x-hello" onclick="cancelJob('hello')">Cancel</button><span class="hint" id="f-hello">No file chosen</span></div>
+  <div class="alive" id="al-hello"></div>
+  <div class="bar"><i id="bar-hello"></i></div><pre id="log-hello"></pre>
+  <div class="result" id="res-hello"></div></div>
+</section>

@@ -1,0 +1,30 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# hardpoint: the hardpoint-STL tools. A hardpoint STL is an ordinary binary STL that also remembers which
+# CAD face every triangle came from. This plugin inspects them and drives conversions that use the labels.
+# It runs no jobs of its own: its tab starts mesh2step jobs. Contract 1.
+contract = 1
+id = "hardpoint"
+name = "Hardpoint STL"
+version = "0.10.2"
+status = "stable"
+summary = "Reads and makes STLs that carry their CAD faces, so conversion back to a solid needs no guessing."
+requires = ["mesh2step"]
+
+[cli]
+command = "hardpoints"
+hooks = "tostep.plugins.hardpoint.cli"
+
+[web]
+tab = "hp"
+title = "Hardpoints"
+order = 20
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+routes = "tostep.plugins.hardpoint.web"
+
+[[cad]]
+id = "hardpoint"
+label = "Export hardpoint STL"
+tooltip = "Save solid bodies as an STL that slicers read as usual but that remembers its CAD faces."
+input = "shape"

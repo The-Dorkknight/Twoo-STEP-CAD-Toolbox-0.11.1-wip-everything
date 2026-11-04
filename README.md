@@ -32,6 +32,27 @@ command line, a FreeCAD workbench and a Fusion add-in are all built on the same 
 
 It runs in your web browser from one portable folder; nothing is installed on your system. Mac, Windows and Linux.
 
+### What the different ways of converting look like
+
+Pick a **quality preset** (or *Advanced…* for every setting). Each button shows how hard it works your computer (red)
+and how good the result is (green):
+
+![The four quality presets as shown in the app: Draft, Quick, Standard, Fine, and Advanced](docs/research/images/ui-presets.jpg)
+
+The same three meshes converted the normal way (Classic, the original converter) and with **roughing first**
+(the Staged way, which the Quick and Standard presets now use for turned and flat-sided parts): far fewer, cleaner
+faces, and faster.
+
+![Three parts as input mesh, Classic result and Staged result: vase 8,665 faces against 14, torus 605 against 9, tray 1,927 against 131](docs/research/images/parts-before-after.webp)
+
+An organic test model with *Guesstimate* on: flat faces and holes stay exact, freeform areas are allowed to sit a
+little further from the mesh, so it finishes in minutes instead of grinding for hours.
+
+![The ghost test model: input mesh, Classic with Guesstimate, Staged with Guesstimate](docs/research/images/ghost-before-after.webp)
+
+More pictures, and every measurement behind them, are in the research paper
+[SOLID evidence](docs/research/SOLID_EVIDENCE.md) ([PDF](docs/research/SOLID_EVIDENCE.pdf)).
+
 **Reporting a problem?** The 3D preview carries a **Diagnostic** panel: the job's settings and result as a QR code and
 in plain words. One screenshot of it says it all ([how it works](docs/guide/diagnostic-code.md)).
 

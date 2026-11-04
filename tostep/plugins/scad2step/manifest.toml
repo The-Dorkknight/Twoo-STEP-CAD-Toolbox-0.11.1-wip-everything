@@ -1,0 +1,69 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# scad2step: OpenSCAD model -> solid STEP with true geometry (the SCAD2STEP engine). Contract 1.
+contract = 1
+id = "scad2step"
+name = "OpenSCAD to STEP"
+version = "0.10.2"
+status = "stable"
+summary = "Rebuilds an OpenSCAD model as real CAD geometry (true cylinders, cones, spheres, arcs, swept surfaces, exact booleans) instead of exporting a mesh and guessing."
+kind = "scad"
+entry = "tostep.plugins.scad2step:run"
+
+[io]
+inputs = [".scad", ".csg"]
+output = "{stem}.step"
+reject = "SCAD → STEP needs an OpenSCAD file (.scad or .csg)"
+mesh_preview = false
+chain = true
+
+[cli]
+command = "scad"
+hooks = "tostep.plugins.scad2step.cli"
+
+[web]
+tab = "scad"
+title = "SCAD → STEP"
+order = 30
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+routes = "tostep.plugins.scad2step.web"
+
+[[cad]]
+id = "scad"
+label = "OpenSCAD → STEP solid"
+tooltip = "Rebuild an OpenSCAD model (.scad or .csg) as real CAD geometry."
+input = "scad"
+
+[[params]]
+name = "units"
+type = "choice"
+choices = ["mm", "inches", "cm", "m"]
+default = "mm"
+help = "What one OpenSCAD unit means. The STEP is written in mm."
+
+[[params]]
+name = "faceted_fn"
+type = "int"
+default = 8
+min = 3
+max = 64
+help = "A circle with an explicit $fn at or below this stays a polygon (so a $fn=6 nut trap stays a hexagon); a higher $fn becomes truly round."
+
+[[params]]
+name = "verify"
+type = "bool"
+default = true
+help = "Render the model with OpenSCAD as well and compare volume and size with the STEP."
+
+[[params]]
+name = "smooth_outlines"
+type = "bool"
+default = true
+help = "Text and imported 2D outlines become smooth curves instead of many straight pieces."
+
+[[params]]
+name = "openscad"
+type = "path"
+default = ""
+help = "Path to the OpenSCAD program (blank = find it)."

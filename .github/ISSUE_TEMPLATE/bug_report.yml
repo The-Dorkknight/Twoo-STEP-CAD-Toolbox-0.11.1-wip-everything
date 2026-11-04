@@ -1,0 +1,46 @@
+name: Bug report
+description: Something converted badly or broke
+body:
+  - type: markdown
+    attributes:
+      value: "Twoo STEP CAD Toolbox is a work in progress. Please don't attach models you aren't allowed to share. Nothing has been run yet on a real Mac, Windows PC, FreeCAD or Fusion by the author, so those reports are especially valuable."
+  - type: input
+    id: version
+    attributes:
+      label: Version (run with --version, or see the bottom of the page)
+      placeholder: 0.11.1-wip
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "macOS 14 M2 / Windows 11 / Linux Mint 22 ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options: [Convert tab, Hardpoints tab, SCAD → STEP tab, Image → STEP tab, Jetwash tab, Install tab, A plug-in I wrote or added, FreeCAD workbench, Fusion add-in, Command line, Start script]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings used (mode, engine, units, tolerance, triangle count)
+  - type: input
+    id: diag
+    attributes:
+      label: Diagnostic code (starts S2S1-, from the preview's Diagnostic panel or `run_tostep.py diag`)
+  - type: textarea
+    id: log
+    attributes:
+      label: Log / terminal output
+      render: text

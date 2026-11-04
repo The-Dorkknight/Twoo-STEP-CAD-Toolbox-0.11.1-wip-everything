@@ -1,0 +1,49 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+# jetwash: clean artefact faces, slivers, specks and tiny holes out of a STEP file. Contract 1.
+contract = 1
+id = "jetwash"
+name = "Jetwash"
+version = "0.10.2"
+status = "stable"
+summary = "Removes junk faces, slivers, micro-steps and tiny holes from a STEP file; every removal is checked and rolled back if it would damage the part."
+kind = "wash"
+requires = ["mesh2step"]
+entry = "tostep.plugins.jetwash:run"
+
+[io]
+inputs = [".step", ".stp", ".stl", ".obj", ".ply", ".3mf", ".off"]
+output = "{stem}_clean.step"
+reject = "Jetwash needs a STEP file (or a mesh to convert first)"
+
+[cli]
+command = "wash"
+hooks = "tostep.plugins.jetwash.cli"
+
+[web]
+tab = "wash"
+title = "Jetwash"
+order = 50
+fragment = "ui/tab.html"
+script = "ui/tab.js"
+style = "ui/tab.css"
+
+[[cad]]
+id = "jetwash"
+label = "Jetwash STEP"
+tooltip = "Clean slivers, micro-steps, thin fins, specks and tiny holes out of a STEP file."
+input = "shape"
+
+[[params]]
+name = "threshold"
+type = "float"
+default = 0.05
+min = 0.0001
+help = "mm: anything thinner or smaller than this counts as junk."
+
+[[params]]
+name = "coarseness"
+type = "choice"
+choices = ["1", "2", "3"]
+default = "2"
+help = "1 gentle, 2 normal, 3 aggressive (also small holes, fillets and chamfers)."

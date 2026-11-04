@@ -1,0 +1,16 @@
+<section id="p-wash" class="hide">
+ <div class="card"><h2>File to clean</h2>
+  <div class="drop" id="d-wash"><b>Drop a STEP file here</b> (or an STL — it's converted first)<br>or click to choose</div>
+  <div class="row"><button class="btn2" id="b-last" onclick="useLast()">Use last converted STEP</button><span class="hint">A mesh is converted with the Convert tab's settings and units.</span></div>
+ </div>
+ <div class="card"><h2>Cleaning</h2>
+  <div class="row"><label>Threshold <input type="number" id="thr" value="0.05" min="0.0001" step="0.01"> mm</label><input type="range" id="thr-s" min="-4" max="1" step="0.01" value="-1.301"><span class="hint">0.0001 … 10 mm</span></div>
+  <div class="row"><label>Coarseness <input type="range" id="coarse" min="1" max="3" step="1" value="2" style="width:120px"></label></div>
+  <p class="coarse" id="coarse-d"></p>
+  <p class="hint">Anything thinner or smaller than the threshold counts as junk. Every removal is checked and rolled back if it would damage the part.</p>
+ </div>
+ <div class="card"><div class="go"><button class="btn" id="b-wash" onclick="runWash()" disabled>Jetwash</button><button class="btn cx hide" id="x-wash" onclick="cancelJob('wash')">Cancel</button><span class="hint" id="f-wash">No file chosen</span></div>
+  <div class="alive" id="al-wash"></div>
+  <div class="bar"><i id="bar-wash"></i></div><pre id="log-wash"></pre>
+  <div class="result" id="res-wash"></div></div>
+</section>

@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"id":	"b3e7a1d2-8c45-4f06-a9d3-71e2c5f0b6a8",
+	"author":	"Matthew Armstrong",
+	"description":	{
+		"":	"WORK IN PROGRESS. Convert mesh bodies to real STEP solids (planes, cylinders, NURBS), jetwash STEP files, and export STLs that remember their CAD faces. Converting and jetwash need the portable Twoo STEP CAD Toolbox app."
+	},
+	"version":	"0.11.0",
+	"runOnStartup":	true,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}

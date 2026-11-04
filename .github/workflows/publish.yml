@@ -1,0 +1,63 @@
+# Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
+# Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.
+#
+# On every push to main: make a GitHub Release from tostep/version.py (a pre-release while the
+# version contains "wip") if that version has no release yet, keep only the newest 4 releases
+# (older release pages are deleted, their tags stay), and publish docs/ as the project page.
+name: Publish
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make the release if this version has none
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(python3 -c "import re;print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('tostep/version.py').read()).group(1))")
+          TAG="v$VER"
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "Release $TAG already exists"; exit 0; fi
+          mkdir dist
+          git archive --format=zip --prefix=Twoo-STEP-CAD-Toolbox/ -o "dist/Twoo-STEP-CAD-Toolbox-$VER.zip" HEAD
+          (cd dist && sha256sum "Twoo-STEP-CAD-Toolbox-$VER.zip" > SHA256SUMS.txt)
+          awk -v v="$VER" '$0 ~ "^## "v {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
+          { echo "Download **Twoo-STEP-CAD-Toolbox-$VER.zip**, unzip it anywhere and double-click the start file for your system (see the README)."; echo; cat notes.md; } > notes_full.md
+          FLAGS=""; case "$VER" in *wip*) FLAGS="--prerelease";; esac
+          gh release create "$TAG" dist/* --title "Twoo STEP CAD Toolbox $VER" --notes-file notes_full.md --target "$GITHUB_SHA" $FLAGS
+      - name: Keep only the newest 4 releases
+        # Older releases (their page and download zip) are deleted; their git tags stay, so every
+        # old version can still be downloaded from the Tags page or checked out.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: 4
+        run: |
+          OLD=$(gh release list --limit 200 --json tagName,createdAt --jq "sort_by(.createdAt) | reverse | .[${KEEP}:] | .[].tagName")
+          for t in $OLD; do echo "Deleting release $t (tag kept)"; gh release delete "$t" --yes; done
+          [ -n "$OLD" ] || echo "Nothing to delete: $KEEP or fewer releases"
+  pages:
+    runs-on: ubuntu-latest
+    continue-on-error: true      # best effort: turning Pages on may need a one-time Settings > Pages > Source: GitHub Actions
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+        continue-on-error: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4
