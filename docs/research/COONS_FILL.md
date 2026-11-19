@@ -57,7 +57,7 @@ Whole parts (`run1.py`; `final_classic.txt`), Classic engine, all closed and val
 | Ridged knob | 69 faces, 0.058 mm, 14.4 s | 78 faces, 0.058 mm, 20.8 s | 69 faces, 0.058 mm, 30.7 s |
 | Blob cut flat | 17 faces, 0.083 mm | same | same (no patch needed a filler) |
 | Bumpy box | 13 faces, 0.076 mm | same | same (no patch needed a filler) |
-| Cat-like figure, 82k triangles | 29,961 faces (facet fallback), 0.014 mm, 706 s | not run | same result, 871 s: Coons used on 1 of 57 patches, 183 s spent on it |
+| Cat-like figure, 64,950 triangles | 29,961 faces (facet fallback), 0.014 mm, 706 s | not run | same result, 871 s: Coons used on 1 of 57 patches, 183 s spent on it |
 
 ### Conclusion
 

@@ -95,6 +95,7 @@ Pass arguments to the start file, or run `python run_tostep.py …` with the pri
     ./twoo-step-cad-toolbox-linux.sh hardpoints part.stl
     ./twoo-step-cad-toolbox-linux.sh diag screenshot.png
     ./twoo-step-cad-toolbox-linux.sh plugins                          # what is installed, and anything broken
+    ./twoo-step-cad-toolbox-linux.sh solidcraft                       # selected mesh bodies in SolidCraft -> solids
 
 Which commands exist comes from the plug-ins. The classic converter stays the default on the command line and in the CAD plug-ins; new engines are opt-in.
 More: [docs/guide/using.md](docs/guide/using.md).
@@ -104,10 +105,18 @@ Open the **Install** tab and click *Install FreeCAD plug-in* or *Install Fusion 
 they send the mesh to this folder, it converts in the background and the solid comes back into your model. Start the toolbox once first so its setup is done.
 Details and manual install: [docs/guide/cad-plugins.md](docs/guide/cad-plugins.md). **Neither has been run in a real FreeCAD or Fusion yet** (see below).
 
+## SolidCraft (experimental)
+[SolidCraft](https://github.com/tangency-labs/solidcraft), the new open-source Fusion-style CAD app, has no plug-in
+system yet, so the toolbox links to it instead: select a mesh body in SolidCraft, click **or take the selected mesh
+body from SolidCraft** in the Mesh tab, convert, and **Send to SolidCraft** puts the solid back as a new component.
+Command line: `tostep solidcraft`. Turn on *Preferences › Assistant › Agents through MCP › Let AI agents connect* in
+SolidCraft first. Details: [docs/guide/solidcraft.md](docs/guide/solidcraft.md). **Not yet run against a real
+SolidCraft**, only against a stand-in that follows its documented protocol.
+
 ## What to read next
 | | |
 |---|---|
-| [docs/guide](docs/guide) | One page per feature: hardpoints, OpenSCAD, images, engines, performance, troubleshooting |
+| [docs/guide](docs/guide) | One page per feature: hardpoints, OpenSCAD, images, engines, performance, SolidCraft, troubleshooting |
 | [HOW_IT_WORKS.md](HOW_IT_WORKS.md) | The pipeline, step by step |
 | [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/PLUGIN_CONTRACT.md](docs/PLUGIN_CONTRACT.md) · [docs/ADDING_A_PLUGIN.md](docs/ADDING_A_PLUGIN.md) | How it is put together, and how to add a tool |
 | [MAINTAINING.md](MAINTAINING.md) · [docs/DECISIONS.md](docs/DECISIONS.md) · [LTS_POLICY.md](LTS_POLICY.md) | For whoever looks after it next |

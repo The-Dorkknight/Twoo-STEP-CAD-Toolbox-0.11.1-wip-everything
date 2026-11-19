@@ -674,6 +674,49 @@ def _core_routes(r):
         app.reveal(app.out)
         return {"ok": True}
 
+    # ---- SolidCraft link (tostep/frontends/solidcraft): a running SolidCraft's control channel
+    def r_sc_status(app, req):
+        from tostep.frontends.solidcraft.link import status
+        ok, text = status()
+        return {"ok": ok, "text": text}
+
+    def r_sc_fetch(app, req):
+        """The selected mesh body in SolidCraft, exported as STL into the work folder and registered
+        like an upload, so the Mesh -> STEP tab converts it as usual."""
+        from tostep.frontends.solidcraft.link import Link, SolidCraftError
+        try:
+            with Link() as sc:
+                bodies = sc.selected_bodies()
+                if not bodies:
+                    return {"error": "Select a mesh body in SolidCraft first."}, 400
+                b = bodies[0]
+                name = _safe_name(b + ".stl")
+                fid = secrets.token_hex(6)
+                path = os.path.join(app.work, fid + "_" + name)
+                sc.export_stl(b, path)
+        except SolidCraftError as e:
+            return {"error": str(e)}, 400
+        if not os.path.isfile(path):
+            return {"error": "SolidCraft did not write the STL file."}, 500
+        app.files[fid] = {"path": path, "name": name}
+        more = f" ({len(bodies) - 1} more selected: one at a time here; `tostep solidcraft` does them all)" \
+            if len(bodies) > 1 else ""
+        return {"id": fid, "name": name, "size": os.path.getsize(path), "body": b, "note": more}
+
+    def r_sc_send(app, req):
+        """A finished job's STEP, inserted into the running SolidCraft as a new component."""
+        from tostep.frontends.solidcraft.link import Link, SolidCraftError
+        job = job_of(app, req)
+        if not job or job["state"] != "done" or not job.get("out_path"):
+            return {"error": "not ready"}, 404
+        stem = os.path.splitext(job["filename"])[0]
+        try:
+            with Link() as sc:
+                rep = sc.insert_step(job["out_path"], stem) or {}
+        except SolidCraftError as e:
+            return {"error": str(e)}, 400
+        return {"ok": True, "component": rep.get("component_name", stem)}
+
     def r_quit(app, req):
         app.shutdown_hooks()
         req.quit = True
@@ -698,6 +741,9 @@ def _core_routes(r):
     r.post("/api/integrate", r_integrate)
     r.post("/api/open-output", r_open_output)
     r.post("/api/quit", r_quit)
+    r.get("/api/solidcraft/status", r_sc_status)
+    r.post("/api/solidcraft/fetch", r_sc_fetch)
+    r.post("re:/api/solidcraft/send/([0-9a-f]+)", r_sc_send)
 
 
 # ------------------------------------------------------------------ the HTTP handler

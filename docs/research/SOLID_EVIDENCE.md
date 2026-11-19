@@ -4,7 +4,7 @@
 
 **Matthew Armstrong** ([github.com/The-Dorkknight](https://github.com/The-Dorkknight)) · United Kingdom<br>
 First published 23 October 2026 · describes EVERYTHING to solid **0.10.2-wip** (D1–D15) and its successor Twoo STEP CAD Toolbox **0.11.1-wip** (D16–D19)<br>
-Repositories: <https://github.com/The-Dorkknight/twoo-step-cad-toolbox> (current) and <https://github.com/The-Dorkknight/stl2step> (frozen) · document version 1.3 (2 November 2026, evening: D18 and D19 added, Figure 3 redrawn with today's status, sections 6 and 7 updated) · version 1.2 (2 November 2026: figures and screenshots added; D16 and D17 added; sections 4, 5, 6 and 7 updated) · D1–D15 are unchanged from 24 October 2026
+Repositories: <https://github.com/The-Dorkknight/twoo-step-cad-toolbox> (current) and <https://github.com/The-Dorkknight/stl2step> (frozen) · document version 1.4 (11 November 2026: a measured correction under D16, Intel graphics; the cat-like test mesh's size corrected in D18 and section 6: 64,950 triangles, not 82,000) · version 1.3 (2 November 2026, evening: D18 and D19 added, Figure 3 redrawn with today's status, sections 6 and 7 updated) · version 1.2 (2 November 2026: figures and screenshots added; D16 and D17 added; sections 4, 5, 6 and 7 updated) · D1–D15 are unchanged from 24 October 2026
 
 *Written with AI assistance (Claude, from Anthropic). Every number in it was measured by the project's own code
 on a 2-core Linux test machine unless it says otherwise. Not legal advice.*
@@ -613,6 +613,15 @@ run side by side, so the job lasts as long as the slower one. If everything else
 scoring was **at least half** of the run, even for a card that is infinitely fast (the second figure below is that
 arithmetic, not a measurement of the cat).
 
+**Correction (version 1.4, 11 November 2026, measured).** The "at least half" above was an inference, and a
+measurement now contradicts it. Profiling the v2 fitter on the processor (2-core Linux machine, card off) put shape
+scoring at **1.1 s of 666 s (0.2 %)** on the 64,950-triangle cat-like figure, and **1 % to 9 %** on four smaller test
+meshes. So the card can account for only a few percent of these runs, and the M5's 2× must have had another cause
+(the two runs probably differed in something else, such as the profile, the preset or a warm cache). Until the cat
+itself is profiled on the Mac, take the 2× as unexplained. The same measurement settles Intel laptop graphics: PyTorch's
+Intel build supports only Arc and Core Ultra graphics (Intel says older UHD and Iris graphics will not be supported),
+and a card would save little here anyway. Note: `INTEL_GPU.md`.
+
 ![The Graphics card box of the app](images/ui-graphics-box.jpg)
 
 *Figure 12. The Graphics card box: every card the computer lists, whether it can be used, one button that installs the right PyTorch build, and *Test it*, which times the card against the processor. Screenshot of 0.11.1-wip on a computer with no usable card.*
@@ -751,7 +760,7 @@ Whole parts (closed, valid solids in every row):
 | | Coons | 78 | 0.058 mm | 20.8 s |
 | | Coons, then plate | 69 | 0.058 mm | 30.7 s |
 | Blob cut flat, bumpy box | any | same in every row | | (no patch needed a filler) |
-| Cat-like figure, 82,000 triangles (Classic falls back to facets on it either way: 29,961 faces, not closed) | plate (default) | 29,961 | 0.014 mm | 706 s |
+| Cat-like figure, 64,950 triangles (Classic falls back to facets on it either way: 29,961 faces, not closed) | plate (default) | 29,961 | 0.014 mm | 706 s |
 | | Coons, then plate | 29,961 | 0.014 mm | 871 s (Coons used on 1 of 57 patches, 183 s spent) |
 
 ![Bar chart: worst gap of every hard patch, plate filler against Coons fill, on the blob and the knob](images/fig-coons-fill.png)
@@ -933,7 +942,7 @@ Twoo STEP CAD Toolbox is the same maths as EVERYTHING to solid 0.10.2-wip in a n
 - The plug-ins for FreeCAD and Fusion were tested against stand-ins, not in the real programs.
 - (v1.2) **Graphics card:** timed on one real card only, an Apple M5 (about 2× on the whole job, by the author's report, preset not recorded). The 0.11.2 round-trip change has been timed on no real card. The Nvidia route (including the GTX 10-series build), and AMD and Intel graphics, have never been run on a real card, and AMD and Intel are not supported. The limit of any card is the share of the run that is scoring, which has not been measured for the cat.
 - (v1.2) **Triangle ceiling:** measured on one synthetic body on a 2-core Linux machine, four sizes, one engine. The value 30,000 is a first guess, and the cost in face count is real (25 faces became 252 at 20,000 triangles on that body). Not tried on the 7th-generation i3 it is meant for, or on any real model.
-- (v1.3) **Coons gap filler (D18):** measured on two synthetic test parts, two more where no patch needed it and one 82,000-triangle figure where it only added time, on a
+- (v1.3) **Coons gap filler (D18):** measured on two synthetic test parts, two more where no patch needed it and one 64,950-triangle figure where it only added time, on a
   2-core Linux machine with another job on the second core. Opt-in only; the plate filler stays the default because
   whole parts came out about the same and it is about twice as slow per patch. Not tried on real scans.
 - (v1.3) **Per-region hybrid (D19): still not built.** One test part measured: neither quad remesher keeps an open

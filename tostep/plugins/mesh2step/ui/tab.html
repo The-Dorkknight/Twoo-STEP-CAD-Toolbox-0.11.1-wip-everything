@@ -1,6 +1,7 @@
 <section id="p-conv">
  <div class="card"><h2>Mesh</h2>
   <div class="drop" id="d-conv"><b>Drop an STL / OBJ / PLY / 3MF here</b><br>or click to choose</div>
+  <div class="sub" style="margin:4px 0 0"><a href="#" onclick="scFetch('conv');return false" title="Exports the mesh body selected in the SolidCraft running on this computer (needs Preferences › Assistant › Agents through MCP › Let AI agents connect turned on there). After converting, “Send to SolidCraft” puts the solid back.">or take the selected mesh body from SolidCraft</a></div>
   <div class="row"><label>Input units <select id="units"><option value="mm">mm</option><option value="inches">inches</option><option value="cm">cm</option><option value="m">m</option></select></label><span class="hint">STEP is always written in mm</span></div>
  </div>
  <div class="card" id="qcard-pre"><h2>Quality</h2>

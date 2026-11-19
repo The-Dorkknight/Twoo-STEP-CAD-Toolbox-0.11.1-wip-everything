@@ -13,6 +13,7 @@ The command line of the Twoo STEP CAD Toolbox.
   tostep diag S2S1-...                read a diagnostic code back (or a screenshot / photo showing its QR)
   tostep plugins                      what is installed, and anything broken
   tostep install [freecad] [fusion] [menu] [files]
+  tostep solidcraft                   selected mesh bodies in a running SolidCraft -> solids, put back
 
 Which commands exist comes from the plugins (their manifests). This file knows no plugin by name
 except that a bare file name means "convert it", which is how the tool has always worked.
@@ -63,6 +64,7 @@ def _overview(reg):
               "  diag        read a diagnostic code (or a screenshot of its QR) back",
               "  plugins     what is installed, and anything broken",
               "  install     put the FreeCAD / Fusion plug-ins, menu entry or right-click entries in place",
+              "  solidcraft  take mesh bodies out of a running SolidCraft, convert them, put the solids back",
               "", "A file name on its own means: convert it (tostep part.stl).",
               "Each command has its own --help, e.g.  tostep convert --help"]
     return "\n".join(lines)
@@ -246,6 +248,9 @@ def main(argv=None):
     if cmd == "install":
         from tostep.frontends import install
         return install.run_cli(argv[1:])
+    if cmd == "solidcraft":
+        from tostep.frontends.solidcraft import cli as sc_cli
+        return sc_cli.main(argv[1:])
     plugin = reg.for_command(cmd)
     if plugin is not None:
         return run_plugin_command(plugin, argv[1:])

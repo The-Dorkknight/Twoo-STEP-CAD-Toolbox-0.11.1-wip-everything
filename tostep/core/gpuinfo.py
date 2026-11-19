@@ -197,8 +197,17 @@ def plan_for(card):
                       "newest Ryzen AI chips, not the built-in Radeon graphics of older Ryzen laptops, and this "
                       "installer does not set ROCm up. The Nvidia card, if there is one, is the one that counts.")
     if v == "Intel":
-        return None, ("Not used. Intel graphics need a different PyTorch build (XPU) that this installer does "
-                      "not set up.")
+        # (11 November 2026) PyTorch's Intel (XPU) build supports Arc cards and Core Ultra (Meteor Lake and
+        # newer) graphics only; Intel's support forum: Raptor Lake "iGPUs and older are not and will not be
+        # supported". And little is lost: the only work a card does here, the v2 fitter's shape scoring, was
+        # 0.2 to 9 % of a v2 run on five test meshes (docs/research/INTEL_GPU.md).
+        little = (" Little is lost: the only work a card does here, the v2 fitter's shape scoring, took 0.2 to 9 % "
+                  "of a run in tests; the rest is processor work.")
+        if re.search(r"\barc\b", card.get("name", "").lower()):
+            return None, ("Not used. Arc graphics can use PyTorch's Intel (XPU) build, which this installer does not "
+                          "set up yet." + little)
+        return None, ("Not used, and no setting can change that: PyTorch's Intel build supports only Arc cards and "
+                      "Core Ultra graphics, and Intel says older UHD and Iris graphics will not be supported." + little)
     return None, "Not used: no PyTorch build this installer can set up for it."
 
 

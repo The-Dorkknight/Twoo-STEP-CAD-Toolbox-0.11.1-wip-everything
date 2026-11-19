@@ -62,7 +62,7 @@ freeform patch, Classic, Staged and Ladder use the slow plate filler. The Coons 
 patch on the patch's own outline (grown outwards a little, so the real outline can trim it), fits its inside to the
 mesh and trims it back. *Coons, then plate* keeps whichever is closer. Measured on two test parts (paper D18): within
 the tolerance on 14 of 29 hard patches against 6 for the plate filler, but about twice as slow per patch, and whole
-parts came out about the same (the blob: 21 faces instead of 26 at the same worst gap; the knob unchanged; an 82,000-triangle figure only got slower, by 165 s). So the
+parts came out about the same (the blob: 21 faces instead of 26 at the same worst gap; the knob unchanged; a 64,950-triangle figure only got slower, by 165 s). So the
 plate filler stays the default. Not tried on real scans.
 
 ## Quad patches engine (experimental, off by default)

@@ -17,6 +17,12 @@ shows every card the computer lists, what each needs, and a button that does it.
   machine and says the ratio. That number is the only honest one.
 
 ## Why the whole job is not many times faster
+**Measured 11 November 2026** (processor only, 2-core Linux machine, v2 fitter): the shape scoring a card can do took
+**0.2 % to 9 %** of the run on five test meshes (cat-like figure, 64,950 triangles: 1.1 s of 666 s; blob cut flat: 2.2 s
+of 24 s). So on these parts even an infinitely fast card saves at most a few percent; the time is OpenCascade building
+and checking faces. The earlier reading of a 2x on an M5 Mac (that scoring must be at least half the run) does not
+match this: the two Mac runs probably differed in something else. Details: [INTEL_GPU.md](../research/INTEL_GPU.md).
+
 The card only does the v2 fitter's shape scoring. Everything else is OpenCascade on the processor, and in *Fine* on the Extreme profile the first pass and v2 run side by side, so the job lasts as long as the slower one. A 2x on a real Mac is what a big but not total share looks like. Since the next release the sample is uploaded once per round and read back once (fewer waits), which helps on every card; the gain is unmeasured on real hardware.
 
 ## What each kind of card needs
@@ -27,7 +33,8 @@ The card only does the v2 fitter's shape scoring. Everything else is OpenCascade
 | **Nvidia, Pascal / Maxwell / Volta** (GTX 750 … GTX 10xx, Titan V) | Yes, **only with the CUDA 12.6 build** | Installs `torch>=2.6,<2.15` from PyTorch's CUDA 12.6 index. See below. |
 | **Nvidia, Kepler or older** (GTX 6xx / 7xx) | No | Says why. |
 | **AMD**, built-in (Ryzen "Radeon Graphics") or older separate cards | No | Says why. PyTorch's AMD (ROCm) builds support only some separate Radeon cards and the newest Ryzen AI chips; this installer does not set ROCm up. |
-| **Intel** graphics | No | Needs a different PyTorch build (XPU) that this installer does not set up. |
+| **Intel** UHD / Iris / Iris Xe (built into 6th–14th gen Core laptops) | No, and it can't be | PyTorch's Intel build supports only Arc and Core Ultra graphics; Intel says older ones will not be supported. Little is lost: see below. |
+| **Intel Arc** (separate cards, Core Ultra's built-in Arc) | Not yet | PyTorch's Intel (XPU) build supports them; this installer does not set it up. |
 
 ### Why a GTX 1060 was "seen but not selectable"
 Before 0.11.1 the tick-box stayed greyed out until a GPU pack was installed, and the pack was the plain `pip install torch`. Since PyTorch 2.8

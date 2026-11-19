@@ -16,6 +16,14 @@ function hookDrop(which,accept){const d=$('d-'+which);
   d.onclick=()=>{const p=$('pick');p.accept=accept;p.onchange=()=>{if(p.files[0])upload(which,p.files[0]);p.value=''};p.click()};
   d.ondragover=e=>{e.preventDefault();d.classList.add('hot')};d.ondragleave=()=>d.classList.remove('hot');
   d.ondrop=e=>{e.preventDefault();d.classList.remove('hot');if(e.dataTransfer.files[0])upload(which,e.dataTransfer.files[0])}}
+// ---- SolidCraft link: take the selected mesh body out of a running SolidCraft / send a STEP back
+async function scFetch(which){const f=$('f-'+which);f.textContent='Asking SolidCraft for the selected body…';
+  try{const j=await api('/api/solidcraft/fetch',{});sel[which]=j.id;f.textContent=j.name+' from SolidCraft ('+fmt(j.size)+')'+(j.note||'');
+    $('b-'+which).disabled=false;if(UPLOADED[which])UPLOADED[which]()}catch(e){f.textContent=e.message}}
+async function scSend(btn,jid){const t=btn.textContent;btn.disabled=true;btn.textContent='Sending…';
+  try{const j=await api('/api/solidcraft/send/'+jid,{});btn.textContent='In SolidCraft as “'+j.component+'”'}
+  catch(e){btn.disabled=false;btn.textContent=t;let m=btn.parentNode.querySelector('.scmsg');
+    if(!m){m=document.createElement('div');m.className='scmsg';m.style.marginTop='6px';btn.parentNode.appendChild(m)}m.textContent='Not sent: '+e.message}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 const VU=$('vu');for(let i=0;i<20;i++)VU.appendChild(document.createElement('i'));
 async function actTick(){try{const a=await api('/api/activity');const n=Math.round(a.cpu/5);
@@ -67,6 +75,7 @@ function watch(which,jid){
        '<a class="btn" style="text-decoration:none" href="/api/download/'+jid+'?t='+TOKEN+'">Download '+esc(j.filename)+'</a> '+
        (j.labelled_saved?'<a class="btn2" style="text-decoration:none" href="/api/download/'+jid+'?what=labels&t='+TOKEN+'">Download the hardpoint STL</a> ':'')+
        '<button class="btn2" onclick="api(\'/api/reveal/'+jid+'\',{})">Show in folder</button> '+
+       (/\.(step|stp)$/i.test(j.filename)?'<button class="btn2" onclick="scSend(this,\''+jid+'\')" title="Insert this STEP into the SolidCraft that is running on this computer, as a new component (needs Preferences › Assistant › Agents through MCP › Let AI agents connect turned on in SolidCraft)">Send to SolidCraft</button> ':'')+
        (NO_PREVIEW.includes(j.kind)?'':'<button class="btn2" onclick="view3d(\''+jid+'\','+(NO_ORIG.includes(j.kind))+')">Preview 3D</button>');if(!NO_PREVIEW.includes(j.kind))view3d(jid,NO_ORIG.includes(j.kind));return}
     if(j.state==='error'){JOBS_ALIVE=false;$('x-'+which).classList.add('hide');$('al-'+which).textContent='';res.style.display='block';res.className='result err';res.innerHTML='<b>Failed:</b> '+esc(j.error||'')+'<br><button class="btn2" style="margin-top:8px" onclick="viewDiag(\''+jid+'\')">Show the diagnostic code</button>';return}
     setTimeout(poll,400)};
