@@ -29,7 +29,7 @@ def _empty_sheet(app, p):
 def prepare_job(app, ctx, params):
     params = _empty_sheet(app, params)
     im.options(params)                         # bad numbers are reported now, not in the worker
-    return dict(params, extras_dir=app.out, extras_stem=ctx.stem)       # where an SVG / DXF copy goes
+    return dict(params, extras_dir=ctx.dest_dir, extras_stem=ctx.stem)       # where an SVG / DXF copy goes
 
 
 def register(router):

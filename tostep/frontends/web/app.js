@@ -69,7 +69,9 @@ function watch(which,jid){
     const run=j.state==='running';JOBS_ALIVE=run?((j.now-j.last_msg>45)?'quiet':true):false;
     $('al-'+which).textContent=j.state==='scheduled'?'Scheduled for '+fmtClock(j.start_at)+' — keep this app open (it keeps the computer awake).':
       j.state==='queued'?'Waiting in the queue for a free slot…':
-      'Working… running '+fmtT(j.now-j.started)+' · last message '+fmtT(j.now-j.last_msg)+' ago · '+Math.round(100*j.progress)+'% (big steps can sit still for minutes — the CPU bar shows it is alive)';
+      'Working… running '+fmtT(j.now-j.started)+' · last message '+fmtT(j.now-j.last_msg)+' ago · '+Math.round(100*j.progress)+'% (big steps can sit still for minutes — the CPU bar shows it is alive)'+
+      (j.stage?' · now: '+j.stage+(j.stage_detail?', '+j.stage_detail:'')+' ('+fmtT(j.stage_for)+' in this step)':'')+(j.clock?' · '+j.clock:'')+
+      ((j.power&&j.power.length)?' · ⚠ '+j.power.join(' '):'');
     if(j.state==='done'){JOBS_ALIVE=false;$('x-'+which).classList.add('hide');$('al-'+which).textContent='';res.style.display='block';
       res.innerHTML='<b>Done</b> — saved as <code>'+esc(j.saved_to)+'</code><pre>'+esc(j.summary)+'</pre>'+
        '<a class="btn" style="text-decoration:none" href="/api/download/'+jid+'?t='+TOKEN+'">Download '+esc(j.filename)+'</a> '+

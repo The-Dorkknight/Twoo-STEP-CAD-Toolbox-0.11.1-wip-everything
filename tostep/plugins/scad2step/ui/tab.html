@@ -17,7 +17,7 @@
  <div class="card"><h2>Options</h2><div class="grid">
   <label title="What one OpenSCAD unit means. STEP is always written in mm">Units <select id="sc-units"><option value="mm">mm</option><option value="inches">inches</option><option value="cm">cm</option><option value="m">m</option></select></label>
   <label title="A circle with an explicit $fn at or below this stays a polygon (so a $fn=6 nut trap stays a hexagon); a higher $fn becomes truly round">Keep as polygon up to $fn <input type="number" id="sc-ffn" value="8" min="3" max="64" step="1"></label>
-  <label>Save the STEP <select id="sc-where" style="width:170px"><option value="beside">next to the .scad</option><option value="output">in the Output folder</option></select></label>
+  <label>Save the STEP <select id="sc-where" style="width:170px"><option value="beside">next to the .scad</option><option value="output">in the Files folder</option></select></label>
   <label title="Renders the model with OpenSCAD as well and compares volume and size with the STEP">Compare with OpenSCAD's render <input type="checkbox" id="sc-verify" checked></label>
   <label title="Text and imported 2D outlines become smooth curves instead of many straight pieces">Smooth text outlines <input type="checkbox" id="sc-smooth" checked></label>
  </div></div>

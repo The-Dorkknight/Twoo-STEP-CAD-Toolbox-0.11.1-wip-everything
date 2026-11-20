@@ -1,6 +1,7 @@
 # Required Notice: Copyright Matthew Armstrong (https://github.com/The-Dorkknight)
 runtime/
 Output/
+Files/
 dist/
 build/
 *.egg-info/

@@ -1,9 +1,18 @@
 <div id="wip">WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN &middot; v__VERSION__</div>
+<div id="scanq"><div class="box"><h2>This looks like a 3D scan</h2>
+<p id="scanq-why"></p>
+<p>A scan is converted differently from a CAD model: the fuzz is smoothed off first (real edges and corners are kept), the
+mesh is thinned out, and areas that can't be fitted exactly are guesstimated. That is much faster and usually gives far
+fewer facets. If this is <b>not</b> a scan (a very dense CAD export, say), choose CAD and it is converted as it is with the
+Classic engine, which can take a lot longer on a dense mesh.</p>
+<div class="row" style="margin-top:12px;gap:10px;flex-wrap:wrap"><button class="btn" id="scanq-scan" onclick="scanAnswer('scan')">Yes, treat it as a scan</button>
+<button class="btn alt" id="scanq-cad" onclick="scanAnswer('cad')">No, it's CAD: use Classic</button>
+<button class="btn alt" onclick="scanAnswer(null)">Cancel</button></div></div></div>
 <div id="disc"><div class="box"><h2>Before you start</h2>
 <p>Twoo STEP CAD Toolbox is <b>source-available, non-commercial software</b> (PolyForm Noncommercial 1.0.0) and is a
 work in progress. It is provided <b>as is, with no warranty and no liability</b>. Check converted and cleaned
 files before you rely on them (parts you will machine, print or sell in particular). It only reads your
-input files and writes new files into the Output folder; it never overwrites your originals.</p>
+input files and writes new files into the Files folder, beside your STL; it never overwrites your originals.</p>
 <label><input type="checkbox" id="disc-ck" onchange="$('disc-ok').disabled=!this.checked"> I have read this and I agree</label>
 <div class="row" style="margin-top:12px"><button class="btn" id="disc-ok" disabled onclick="discOk()">I agree</button>
 <button class="link" onclick="quitApp()">Quit</button></div></div></div>
@@ -20,7 +29,7 @@ Licensed under the PolyForm Noncommercial License 1.0.0. No warranty.</p>
 <span title="Heartbeat: blinks every second while a job runs (amber = quiet for a while)"><span class="mlab">RUN</span><span class="lamp" id="hb"></span></span>
 <span title="Decorative — not functional (yet)"><svg id="key" width="78" height="46" viewBox="0 0 78 46" onclick="keyTurn()"><text x="3" y="9" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">LOCK</text><text x="29" y="6" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">NORM</text><text x="50" y="9" font-size="7" font-family="Courier New" font-weight="700" fill="#2b2820">TURBO</text>
 <circle cx="39" cy="29" r="14" fill="#6e6856"/><circle cx="39" cy="29" r="11" fill="#d8d3c2" stroke="#2b2820"/><g class="k" id="keyk" style="transform:rotate(0deg);transform-origin:39px 29px"><rect x="35.5" y="19" width="7" height="12" rx="2" fill="#2b2820"/><circle cx="39" cy="29" r="2" fill="#b7a96a"/></g></svg><span class="lamp amb" id="turbo"></span></span></span>
-<button class="link" onclick="api('/api/open-output',{})">Output folder</button><button class="link" onclick="$('about').style.display='flex'">About</button><button class="link" onclick="quitApp()">Quit</button></header>
+<button class="link" onclick="api('/api/open-output',{})">Files folder</button><button class="link" onclick="$('about').style.display='flex'">About</button><button class="link" onclick="quitApp()">Quit</button></header>
 <main>
 <!--SECTIONS-->
 </main>

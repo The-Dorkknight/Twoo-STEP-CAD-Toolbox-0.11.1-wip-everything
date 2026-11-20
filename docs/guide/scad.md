@@ -16,7 +16,7 @@ in as flat facets. The engine is the **SCAD2STEP** project, now built into this 
    libraries next to the file working and lets the live link watch it.
 2. **Parameters:** the model's own Customizer variables appear as fields (ranges, drop-downs and `/* [Groups] */`
    are respected), so you can export a variant without editing the file.
-3. **Options:** units, which circles stay polygons, where the STEP goes (next to the `.scad`, or `Output/`), a
+3. **Options:** units, which circles stay polygons, where the STEP goes (next to the `.scad`, or `Files/`), a
    comparison with OpenSCAD's own render (volume and size), and smooth text outlines.
 4. **Convert to STEP.** The result opens in the same 3D preview as the STL → STEP tab.
 5. **Live link:** keep editing in OpenSCAD; each time you save (F2) the STEP beside the `.scad` is rebuilt within a

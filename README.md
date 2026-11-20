@@ -1,4 +1,4 @@
-**WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN** (version 0.11.1-wip)
+**WORK IN PROGRESS: MANY FEATURES MAY BE BROKEN** (version 0.11.4-wip)
 
 # Twoo STEP CAD Toolbox
 
@@ -78,7 +78,7 @@ Everything stays inside the folder:
       tostep/     the program (core, plug-ins, front ends)
       launch/     the start script the double-click files call
       runtime/    private Python 3.12 + libraries, one subfolder per CPU type
-      Output/     your results (also offered as a browser download)
+      Files/      one folder per project: the STL, the STEP made from it and its log, side by side
 
 - The first start downloads **uv** (~20 MB), **Python 3.12** (~30 MB) and the libraries (~500 MB); about 1.5 GB on disk, a few minutes. Later starts are instant.
 - It never uses or changes your system Python, Homebrew, conda or anything else. Nothing is written outside the folder.

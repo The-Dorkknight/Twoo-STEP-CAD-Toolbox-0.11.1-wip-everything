@@ -35,8 +35,8 @@ PRESETS = [
     {"id": "quick", "pic": "near", "pq": [0.25, 0.75], "name": "Quick", "tag": "fast",
      "line": "Looks at the part's shape first (turned, flat-sided, organic) and claims the easy faces before "
              "anything slow. In the tests about twice as fast as Standard, often with fewer faces. Organic "
-             "areas may sit up to 0.3 mm off.",
-     "set": {"engine": "ladder"}},
+             "areas may sit up to 0.3 mm off; meshes over 60,000 triangles (scans) are reduced first.",
+     "set": {"engine": "ladder", "decimate": "60000"}},
     {"id": "standard", "pic": "fit", "pq": [0.5, 0.85], "name": "Standard", "tag": "recommended",
      "line": "Picks the engine by the part's shape. Smooth organic parts become quad patches: within the "
              "tolerance, no facets, smooth joins. Everything else goes the Quick way. Slower than Quick on busy "

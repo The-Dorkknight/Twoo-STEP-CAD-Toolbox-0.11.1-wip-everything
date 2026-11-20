@@ -135,6 +135,7 @@ class Params:
     ladder_crease: bool = True     # sharp-edge angle from the edge-angle histogram's valley (when left at default)
     max_settle: int = 50           # most extra "settling" passes after refine_rounds (classic: 50)
     max_fills: int = 0             # most slow plate fills per conversion (0 = no limit)
+    scan_cleanup: str = "auto"     # loose pieces, non-manifold edges, holes: "auto" | "on" | "largest" | "off" (scanclean.py)
     gap_fill: str = "plate"        # a patch the least-squares fit misses: "plate" (the plate filler, as before),
                                    # "coons" (a Coons patch on the patch's own outline, its inside fitted to the
                                    # mesh; EXPERIMENTAL), "coons+plate" (Coons first, the plate filler only if
@@ -148,6 +149,9 @@ class Params:
     strip_rule: str = "classic"    # (internal) "sag": the density-independent narrow-strip test (Ladder, CAD-like routes)
     skip_planes: bool = False      # (internal) organic route: no flat-face search
     lathe_first: bool = False      # (internal) lathe route: surfaces of revolution claimed before the flat search
+    scan: bool = False             # (internal, 0.11.4) the mesh was found to be a noisy scan (scan_prep)
+    scan_mode: str = "auto"        # 0.11.4: "auto" (a dense mesh with random triangle tilt is a scan), "scan" (treat it
+                                   # as one whatever it looks like) or "cad" (never: the mesh is left as it is)
 
 
 @dataclass
@@ -194,15 +198,121 @@ class Report:
 
 
 class _Log:
+    """The conversion's log and progress. (0.11.3) It also knows which stage the conversion is in:
+    `L.stage = "building faces"` times that stage, a background ticker says "still building faces" when
+    nothing else has been printed for 30 s (the build stages sit silent for many minutes on a big mesh,
+    and a person watching cannot tell that from a hang), and `L.time_report()` says where the time went."""
+    TICK_S = 30.0                  # quiet for this long: say something
+    POLL_S = 5.0                   # how often the ticker looks
+
     def __init__(self, log=None, progress=None):
         self._log = log or (lambda s: None)
         self._prog = progress or (lambda f: None)
+        self._t0 = time.time()
+        self._last = self._t0                 # when something was last printed
+        self._stage_t = self._t0
+        self._stage = "starting"
+        self._spent = {}
+        self._stop = None
+        self._detail = ""                     # e.g. "patch 12 of 49", shown by the ticker and the page
+        self._power_said = False
+        self._status_path = os.environ.get("TOSTEP_STATUS_FILE", "")
+        self._status_t = 0.0
+        self._write_status(force=True)
+
+    @property
+    def stage(self):
+        return self._stage
+
+    @stage.setter
+    def stage(self, name):
+        now = time.time()
+        self._spent[self._stage] = self._spent.get(self._stage, 0.0) + (now - self._stage_t)
+        self._stage, self._stage_t = name, now
+        self._detail = ""
+        self._write_status(force=True)
+
+    @property
+    def detail(self):
+        return self._detail
+
+    @detail.setter
+    def detail(self, text):
+        self._detail = text
+        self._write_status()
+
+    def _write_status(self, force=False):
+        """(0.11.3) Where the conversion is, in a small file the app's server reads. A Python thread cannot
+        speak while OpenCASCADE holds the interpreter lock (writing a big STEP, sewing thousands of faces),
+        but the server is another process, so it can say 'still building faces' whatever the worker is doing.
+        At most once a second for the detail text; always on a change of stage."""
+        if not self._status_path:
+            return
+        now = time.time()
+        if not force and now - self._status_t < 1.0:
+            return
+        self._status_t = now
+        try:
+            import json
+            tmp = self._status_path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump({"stage": self._stage, "detail": self._detail, "stage_start": self._stage_t,
+                           "t0": self._t0}, fh)
+            os.replace(tmp, self._status_path)
+        except Exception:  # noqa  (a status file must never stop a conversion)
+            pass
 
     def __call__(self, msg):
+        self._last = time.time()
         self._log(msg)
 
     def p(self, frac):
         self._prog(max(0.0, min(1.0, frac)))
+
+    def start_ticker(self):
+        """A daemon thread: a sign of life whenever the log has been quiet for TICK_S seconds."""
+        import threading
+        if self._stop is not None:
+            return
+        self._stop = threading.Event()
+
+        def run():
+            from tostep.core import powerinfo
+            while not self._stop.wait(self.POLL_S):
+                now = time.time()
+                if now - self._last < self.TICK_S:
+                    continue
+                clk = powerinfo.clock_text()
+                try:
+                    self._log(f"  … still {self._stage}" + (f", {self.detail}" if self.detail else "")
+                              + f" ({_mmss(now - self._stage_t)} in this step, {_mmss(now - self._t0)} in all"
+                              + (f", {clk}" if clk else "") + ")")
+                    if not self._power_said:       # the processor is busy now, so its clock means something
+                        self._power_said = True
+                        for line in powerinfo.advice(busy=True):
+                            self._log("  Power: " + line)
+                except Exception:  # noqa
+                    pass
+                self._last = time.time()
+        threading.Thread(target=run, name="tostep-heartbeat", daemon=True).start()
+
+    def stop_ticker(self):
+        if self._stop is not None:
+            self._stop.set()
+
+    def time_report(self, top=6):
+        """"Where the time went: ..." for the stages that took 5 % or more, or None for a short run."""
+        self.stage = "finishing"
+        total = sum(self._spent.values())
+        if total < 30:
+            return None
+        parts = sorted(((v, k) for k, v in self._spent.items() if v >= 0.05 * total), reverse=True)[:top]
+        return "Where the time went: " + ", ".join(f"{k} {_mmss(v)} ({100 * v / total:.0f} %)" for v, k in parts)
+
+
+def _mmss(s):
+    s = int(s)
+    return f"{s // 60}:{s % 60:02d}"
 
 
 # ---------------------------------------------------------------- mesh prep
@@ -216,7 +326,38 @@ def _profile_ceiling():
         return 0
 
 
+_LOADED = {}      # (0.11.4) the last mesh prepared, so a second engine in the same run doesn't redo it
+
+
 def load_mesh(path, prm: Params, log):
+    """The mesh, cleaned and (for a scan) prepared. The Standard preset looks at a part with the quad-patch
+    engine first and then hands it to the Ladder engine, and both loaded and prepared the same file: about
+    15 s twice on the stand-in scan. The last result is kept for that second call (same file, same settings)."""
+    try:
+        st = os.stat(path)
+        key = (os.path.abspath(path), st.st_mtime_ns, st.st_size, prm.scale, prm.smooth, prm.mode, prm.memory_guard,
+               prm.decimate, getattr(prm, "scan_cleanup", "auto"), getattr(prm, "scan_mode", "auto"),
+               os.environ.get("TOSTEP_EDGESMOOTH", "1"), os.environ.get("TOSTEP_TRI_CEILING", ""))
+    except (OSError, TypeError):
+        key = None
+    hit = _LOADED.get("key") == key and key is not None
+    if hit:
+        m0, dec = _LOADED["mesh"], _LOADED["decimate"]
+        prm.decimate = dec
+        log(f"Using the mesh prepared a moment ago ({len(m0.faces):,} triangles)")
+        m = m0.copy()
+        m.metadata.update(m0.metadata)
+        return m
+    m = _load_mesh(path, prm, log)
+    if key is not None:
+        _LOADED.clear()
+        c = m.copy()
+        c.metadata.update(m.metadata)
+        _LOADED.update(key=key, mesh=c, decimate=prm.decimate)
+    return m
+
+
+def _load_mesh(path, prm: Params, log):
     m = trimesh.load(path, force="mesh", process=True)
     if not isinstance(m, trimesh.Trimesh) or len(m.faces) == 0:
         raise ValueError("No triangles found in the file")
@@ -231,6 +372,9 @@ def load_mesh(path, prm: Params, log):
         m.remove_degenerate_faces()
         m.remove_duplicate_faces()
     m.remove_unreferenced_vertices()
+    from tostep.plugins.mesh2step import scanclean
+    m = scanclean.clean(m, getattr(prm, "scan_cleanup", "auto"), log)
+    scan_cleaned = bool(m.metadata.get("scan_cleaned"))
     m = _collapse_tiny_edges(m, prm, log)
     if prm.memory_guard:
         limit = safe_triangle_limit(prm.mode)
@@ -247,6 +391,8 @@ def load_mesh(path, prm: Params, log):
     if prm.smooth:
         trimesh.smoothing.filter_taubin(m, iterations=int(prm.smooth))
         log(f"Denoised ({prm.smooth} Taubin iterations)")
+    else:
+        m = scan_prep(m, prm, scan_cleaned, log)
     meshfix.fix_normals(m)
     if not m.is_watertight:
         trimesh.repair.fill_holes(m)
@@ -256,6 +402,123 @@ def load_mesh(path, prm: Params, log):
     if m.is_watertight and m.volume < 0:
         m.invert()
     return m
+
+
+def plain_reduce(m, target, log, max_move=None):
+    """(0.11.2) Plain quadric reduction to about `target` triangles (pyfqmr), kept only if it stays
+    closed when the input was closed. Logs how far it moved the surface. None if it can't."""
+    try:
+        import pyfqmr
+    except ImportError:
+        return None
+    t0 = time.time()
+    s = pyfqmr.Simplify()
+    s.setMesh(np.asarray(m.vertices, np.float64), np.asarray(m.faces, np.int32))
+    s.simplify_mesh(target_count=int(target), aggressiveness=5, preserve_border=True, verbose=False)
+    v, f, _ = s.getMesh()
+    if len(f) < 4:
+        return None
+    r = trimesh.Trimesh(np.asarray(v, np.float64), np.asarray(f, np.int64), process=True)
+    if m.is_watertight and not r.is_watertight:
+        # (0.11.3) a noisy mesh leaves a few stray non-manifold edges when it is reduced (16 of them in
+        # 150,000 triangles on the test scan): cut those triangles and close what that opens
+        from tostep.plugins.mesh2step import scanclean
+        quiet = lambda *a: None  # noqa: E731
+        r = scanclean.fill_holes(scanclean.cut_nonmanifold(r, quiet), quiet)
+        if not r.is_watertight:
+            log("  plain reduction couldn't keep the mesh closed either — using the full mesh")
+            return None
+    meshfix.fix_normals(r)
+    if r.is_watertight and r.volume < 0:
+        r.invert()
+    S, _ = trimesh.sample.sample_surface(m, 8000, seed=1)
+    _, d, _ = trimesh.proximity.closest_point(r, S)
+    if max_move is not None and float(d.max()) > max_move:
+        log(f"  plain reduction to {len(r.faces):,} triangles would move the surface by {d.max():.3f} mm "
+            f"(more than {max_move:.3f} mm): not used")
+        return None
+    log(f"Reduced plainly {len(m.faces):,} → {len(r.faces):,} triangles in {time.time() - t0:.1f} s "
+        f"(the surface moved {np.median(d):.3f} mm typically, {d.max():.3f} mm at most)")
+    return r
+
+
+def scan_prep(m, prm, scan_cleaned, log):
+    """(0.11.3) What a dense mesh gets before anything else looks at it. A dense mesh is looked at as a possible 3D scan,
+    closed or not: the author's real scan was one closed piece, so the 0.11.2 clean-up did nothing and none of
+    this ran, and the conversion spent 6 minutes just reducing 620,000 triangles and then 30 minutes more
+    fitting noise.
+      * "is it a scan?" (scandetect.py): over 100,000 triangles and neighbouring triangles tilted 2 degrees or
+        more at random (13 on the test scans, under 0.2 on every clean mesh tried, CAD-like or organic), or
+        the clean-up had to act. Setting scan_mode to "scan" or "cad" overrides the verdict. A scan then gets
+        3 light Taubin passes and, after the reduction below, edge-keeping smoothing (edge_smooth). A mesh that
+        is not a scan is left exactly as it was (0.11.3 judged by how far three Taubin passes moved the points,
+        and called two clean organic meshes scans; and reduced every dense mesh plainly, which cost a clean
+        786,000-triangle box five extra faces);
+      * a plain quadric reduction to SCAN_PREREDUCE triangles (seconds), kept only if it moved the surface by
+        no more than half the tolerance, tried again at twice the count if it moved it more. Without the
+        denoise it could not stay closed on the noisy test scan (16 non-manifold edges), so a reduction
+        that comes out open is also repaired (see plain_reduce).
+    Setting 'Scan clean-up' to off skips all of it."""
+    if getattr(prm, "scan_cleanup", "auto") == "off":
+        return m
+    dense = len(m.faces) > SCAN_PREREDUCE
+    if not (scan_cleaned or dense):
+        return m
+    diag = float(np.linalg.norm(m.extents))
+    tol = prm.tol if getattr(prm, "tol", 0) and prm.tol > 0 else max(0.01, 5e-4 * diag)
+    mode = getattr(prm, "scan_mode", "auto")
+    from tostep.plugins.mesh2step import scandetect
+    if mode == "scan":
+        noisy = len(m.faces) > 100000
+    elif mode == "cad":
+        noisy = False
+    else:
+        a = scandetect.assess(m, scan_cleaned)
+        noisy = a["likely"]
+        if noisy:
+            log("Looks like a 3D scan: " + a["why"] + ". Treated as one (the scan rules; choose 'It's CAD' to "
+                "convert it as it is).")
+    if noisy:
+        v0 = np.array(m.vertices)
+        trimesh.smoothing.filter_taubin(m, iterations=3)
+        move = np.linalg.norm(np.asarray(m.vertices) - v0, axis=1)
+        log(f"Denoised lightly (3 Taubin passes; points moved {float(np.median(move)):.3f} mm typically, "
+            f"{float(np.percentile(move, 99)):.3f} mm for 99 % of them; set 'Denoise iterations' to change it, "
+            "or 'Scan clean-up' to off)")
+    if noisy and dense:
+        # (0.11.4) only a scan: on a clean dense CAD mesh this plain reduction ran before the feature-keeping one
+        # and turned a 786,000-triangle box (6 faces on 0.11.1) into 11 faces; the golden/dense-box check found it
+        for target in (SCAN_PREREDUCE, 2 * SCAN_PREREDUCE):
+            if len(m.faces) <= target:
+                break
+            r = plain_reduce(m, target, log, max_move=tol / 2.0)
+            if r is not None:
+                m = r
+                break
+    if noisy and os.environ.get("TOSTEP_EDGESMOOTH", "1") != "0":
+        m = edge_smooth(m, log)
+    if noisy:
+        m.metadata["scan_noisy"] = True
+    return m
+
+
+def edge_smooth(m, log):
+    """(0.11.4, paper D25) Scanner noise smoothed away while real edges are kept (edgesmooth.py): without
+    it the noise made 11 % of the test scan's edges look sharp and the patch layout cut the scan into
+    1,500 to 2,500 freeform patches."""
+    from tostep.plugins.mesh2step import edgesmooth
+    t = time.time()
+    V0 = np.asarray(m.vertices)
+    before = float(np.median(np.degrees(m.face_adjacency_angles)))
+    V = edgesmooth.smooth(V0, np.asarray(m.faces))
+    move = np.linalg.norm(V - V0, axis=1)
+    r = trimesh.Trimesh(V, np.asarray(m.faces), process=False)
+    r.metadata["before_edge_smooth"] = np.array(V0)       # (kept: an organic scan goes back to these, see _convert)
+    after = float(np.median(np.degrees(r.face_adjacency_angles)))
+    log(f"Smoothed the scanner noise, keeping real edges: neighbouring triangles {before:.1f}° → {after:.1f}° apart "
+        f"(typical), points moved {np.median(move):.3f} mm typically, {move.max():.3f} mm at most, "
+        f"{time.time() - t:.1f} s")
+    return r
 
 
 def reduce_within(m, max_err, log, min_tris=30000):
@@ -580,7 +843,7 @@ def simplify_keep_features(ctx, label, planes, prm, tol, target, log):
     m = _collapse_tiny_edges(m, prm, lambda *a: None)     # same clean-up a loaded mesh gets
     meshfix.fix_normals(m)
     if not m.is_watertight:
-        log("Feature-preserving reduction couldn't keep the mesh closed — using the full mesh instead")
+        log("Feature-preserving reduction couldn't keep the mesh closed — reducing it plainly instead")
         return None
     n_r = sum(1 for k in kind.values() if k == "round")
     log(f"Reduced {ctx.nF:,} → {len(m.faces):,} triangles in {time.time() - t0:.1f} s. "
@@ -1474,12 +1737,28 @@ class _Graph:
         bend = 1.0 - np.einsum("ij,ij->i", ctx.N[a], ctx.N[b])
         self.a, self.b = a, b
         self.w = dist * (1.0 + 8.0 * bend) + 1e-9
+        # (0.11.2) the whole graph once, rows = the first face of each pair; a sub-graph is then
+        # read from its own rows only. The old way masked every pair of the whole mesh on every
+        # call: on a 653,000-triangle scan, patch layout made thousands of calls over a million
+        # pairs each and ran for over 30 minutes (docs/research/SCAN_CLEANUP.md).
+        nF = int(max(a.max(initial=-1), b.max(initial=-1)) + 1) if len(a) else 0
+        self.nF = max(nF, int(ctx.nF))
+        self.G = coo_matrix((self.w, (a, b)), shape=(self.nF, self.nF)).tocsr()
+        self._loc = -np.ones(self.nF, dtype=np.int64)
 
-    def sub(self, ids, nF):
-        loc = -np.ones(nF, dtype=np.int64); loc[ids] = np.arange(len(ids))
-        m = (loc[self.a] >= 0) & (loc[self.b] >= 0)
+    def sub(self, ids, nF=None):
+        ids = np.asarray(ids, dtype=np.int64)
         n = len(ids)
-        G = coo_matrix((self.w[m], (loc[self.a[m]], loc[self.b[m]])), shape=(n, n)).tocsr()
+        R = self.G[ids]                                   # only these faces' rows
+        loc = self._loc
+        loc[ids] = np.arange(n)
+        try:
+            col = loc[R.indices]
+            keep = col >= 0
+            rows = np.repeat(np.arange(n), np.diff(R.indptr))
+            G = coo_matrix((R.data[keep], (rows[keep], col[keep])), shape=(n, n)).tocsr()
+        finally:
+            loc[ids] = -1
         return G
 
 
@@ -1593,9 +1872,16 @@ def layout_patches(ctx, graph, comp_ids, max_area, max_bend, need_disk=True):
     out = []
     stack = [comp_ids]
     guard = 0
+    beat = getattr(ctx, "heartbeat", None)          # (0.11.2) a sign of life on big, noisy meshes
     while stack:
         ids = stack.pop()
         guard += 1
+        if beat is not None and guard % 64 == 0:
+            now = time.time()
+            if now - getattr(ctx, "_beat_t", 0.0) > 20.0:
+                ctx._beat_t = now
+                beat(f"  … still dividing curved areas into patches: {getattr(ctx, '_beat_n', 0) + len(out):,} so far, "
+                     f"{len(stack):,} piece(s) waiting ({now - getattr(ctx, 't0', now):.0f} s since the start)")
         if len(ids) <= 1 or guard > 20000:
             out.append(ids); continue
         a = ctx.area[ids].sum()
@@ -1611,6 +1897,8 @@ def layout_patches(ctx, graph, comp_ids, max_area, max_bend, need_disk=True):
         if len(parts) <= 1:
             out.append(ids); continue
         stack.extend(parts)
+    if beat is not None:
+        ctx._beat_n = getattr(ctx, "_beat_n", 0) + len(out)
     return out
 
 
@@ -3520,14 +3808,30 @@ def _auto_crease(ctx, prm, L):
 
 
 def convert(in_path, out_path, prm: Params | None = None, log=None, progress=None) -> Report:
-    prm = prm or Params()
     L = _Log(log, progress)
+    L.start_ticker()
+    try:
+        return _convert(in_path, out_path, prm, L)
+    finally:
+        L.stop_ticker()
+
+
+def _convert(in_path, out_path, prm, L) -> Report:
+    prm = prm or Params()
+    L.stage = "reading and cleaning the mesh"
+    try:
+        from tostep.core import powerinfo
+        for line in powerinfo.advice():
+            L("Power: " + line)
+    except Exception:  # noqa  (a power check must never stop a conversion)
+        pass
     rep = Report(out_path=str(out_path))
     t0 = time.time()
     from tostep.plugins.mesh2step import hardpoints
     if prm.use_labels:
         hardpoints.apply_units(in_path, prm, L)
     mesh = load_mesh(in_path, prm, L)
+    prm.scan = bool(mesh.metadata.get("scan_noisy"))
     rep.n_input_tris = len(mesh.faces)
     if mesh.is_watertight:
         rep.mesh_volume = float(abs(mesh.volume))
@@ -3540,18 +3844,39 @@ def convert(in_path, out_path, prm: Params | None = None, log=None, progress=Non
     L(f"Part size {ctx.diag:.2f} mm (diagonal), tolerance {tol:.4g} mm")
     if prm.ladder and prm.mode != "faceted":
         from tostep.plugins.mesh2step import ladder
+        L.stage = "looking at the shape (choosing a route)"
         rep.route, _ = ladder.choose(ctx, prm, L)
+        back = mesh.metadata.get("before_edge_smooth")
+        if prm.scan and back is not None and rep.route not in ("lathe", "prismatic"):
+            # (0.11.4) the edge-keeping smoothing and the scan rules paid off on turned scans (the soldering iron:
+            # 23.5 -> 6 minutes, 78,000 -> 7,000 faces on the stand-in). A bent organic stand-in scan went the
+            # other way (5 minutes on 0.11.3, over 18 on this build, and the run did not end), so a scan that is
+            # not turned or flat-sided is converted as it was in 0.11.3: Taubin-denoised and reduced, not smoothed
+            # further (SCAN_EDGES.md)
+            mesh = trimesh.Trimesh(np.asarray(back), np.asarray(mesh.faces), process=False)
+            mesh.metadata["scan_noisy"] = True
+            prm.scan = False
+            ctx = MeshCtx(mesh)
+            ctx.t0 = t0
+            mesh_full = mesh
+            L(f"  (a {rep.route} scan: kept as it was before the edge-keeping smoothing)")
     elif prm.mode != "faceted" and not prm.rough:
         _lathe_tip(ctx, L)
     if prm.organic_tol and prm.organic_tol > tol and prm.mode != "faceted":
         L(f"Guesstimate mode: freeform areas may be up to {prm.organic_tol:.3g} mm off; "
           f"flat faces, cylinders, spheres and edges keep {tol:.4g} mm")
-        if prm.rough:
+        if prm.scan and len(mesh.faces) <= 2 * SCAN_PREREDUCE:
+            # (0.11.4) a scan was reduced and smoothed already (scan_prep). Reducing it again here, piece by piece
+            # with every outline locked, folded the smoothed stand-in into slivers (19 % of its edges sharper than
+            # 30 degrees afterwards, against 6 % before) and its patch layout made 1,100 freeform patches again
+            L("  (a scan: already reduced and smoothed, not reduced again)")
+        elif prm.rough:
             # Staged engine: the swept shapes are found on the full mesh first, then each
             # kind of area is reduced by its own budget (exact shapes a third of the tight
             # tolerance, organic areas a sixth of the organic one) with every outline locked.
             auto = prm.crease_angle == Params.crease_angle
             _auto_crease(ctx, prm, lambda *a: None)
+            L.stage = "reducing the mesh piece by piece"
             got = reduce_regions(ctx, prm, tol, L)
             if auto:
                 prm.crease_angle = Params.crease_angle      # re-estimated below on the mesh actually used
@@ -3586,14 +3911,22 @@ def convert(in_path, out_path, prm: Params | None = None, log=None, progress=Non
                 # borders by length instead of by count
                 prm.plane_rule = "length"
                 L("  flat-face borders judged by edge length on this part")
+        L.stage = "finding flat faces"
         label, planes = find_planes(ctx, prm, tol, L)
     snap_to_planes(ctx, label, planes, tol)
     if prm.decimate and ctx.nF > prm.decimate:
+        L.stage = "reducing the mesh (keeping edges and round features)"
         small = simplify_keep_features(ctx, label, planes, prm, tol, prm.decimate, L)
+        if small is None:
+            # (0.11.2) on a noisy scan the feature-keeping reduction often can't stay closed, and the
+            # conversion then ran on every triangle: 3 hours for a 620,000-triangle scan on Draft.
+            # A plain quadric reduction to the same count (closed, measured both ways) instead.
+            small = plain_reduce(trimesh.Trimesh(ctx.V, ctx.F, process=False), prm.decimate, L)
         if small is not None:
             if hints is not None:
                 L("  (the mesh was reduced, so the file's face labels can't be used — detecting faces)")
             ctx = MeshCtx(small); ctx.t0 = t0     # the time budget counts from the start
+            L.stage = "finding flat faces"
             label, planes = find_planes(ctx, prm, tol, L)
             snap_to_planes(ctx, label, planes, tol)
     L.p(0.12)
@@ -3610,6 +3943,7 @@ def convert(in_path, out_path, prm: Params | None = None, log=None, progress=Non
             # the blobs plate's "3 mm off" was three such cylinder faces)
             def check(cand):
                 """Write the candidate, read it back: (survived?, points on what didn't)."""
+                L.stage = "checking the solid (writing and re-reading the STEP)"
                 write_step(cand, out_path)
                 back = read_step(out_path)
                 ok = any(True for _ in _explore(back, TopAbs_SOLID)) and _sealed(back)
@@ -3646,11 +3980,13 @@ def convert(in_path, out_path, prm: Params | None = None, log=None, progress=Non
         if trip.get("ok") and trip.get("shape") is shape:
             written = trip["back"]
 
+    L.stage = "writing the STEP"
     L("Writing STEP…")
     if written is None:
         write_step(shape, out_path)
     L.p(0.93)
     if prm.verify:
+        L.stage = "measuring the result against the mesh"
         L("Verifying (re-reading STEP, measuring deviation)…")
     if (written is None and prm.ladder and prm.mode != "faceted" and rep.n_faceted_regions == 0
             and _count_faces(shape) < 300 and _sealed(shape)):
@@ -3695,6 +4031,9 @@ def convert(in_path, out_path, prm: Params | None = None, log=None, progress=Non
     rep.seconds = time.time() - t0
     rep.ok = True
     L.p(1.0)
+    tr = L.time_report()
+    if tr:
+        L(tr)
     L(rep.summary())
     return rep
 
@@ -3732,6 +4071,10 @@ def _build_faceted(ctx, label, planes, tol, L, rep):
     return shape
 
 
+CKPT_MAX_TRIS = 60000
+SCAN_PREREDUCE = 150000          # a cleaned-up scan bigger than this is reduced plainly first (load_mesh)
+
+
 def _checkpoint_faceted(ctx):
     """The mesh being fitted as a closed solid of triangles, quickly: no merging of coplanar
     facets (that is the slow part of the full faceted fallback) — a safety copy, not the result."""
@@ -3759,6 +4102,7 @@ def _labelled_prim(ctx, ids, kind, tol):
 def _layout_regions(ctx, graph, label, planes, tol, prm, L, max_area):
     """Divide the mesh into regions: flat, round (cylinder / sphere / lathe) and freeform patches."""
     nP = len(planes)
+    ctx.heartbeat = L
     hints = getattr(ctx, "hints", None)
     if hints is not None:
         comps = [c["ids"] for c in hints["comps"]]
@@ -3928,6 +4272,7 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
     if regions0 is not None:
         regions = regions0          # (testing) start from a region layout worked out earlier
     else:
+        L.stage = "dividing curved areas into patches"
         regions = _layout_regions(ctx, graph, label, planes, tol, prm, L, max_area)
     L.p(0.2)
 
@@ -4060,11 +4405,20 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
 
     cache = {}
     n_free = sum(r["type"] == "nurbs" for r in regions)
-    want_ckpt = prm.checkpoint == "on" or (prm.checkpoint == "auto" and ctx.nF >= 20000)
+    # (0.11.2) not above 60,000 triangles in auto: the checkpoint is built from every triangle and
+    # grows faster than the count (60,000 facets 80 s, 119,000 facets 346 s on a 2-core machine;
+    # docs/research/SCAN_CLEANUP.md)
+    short = bool(prm.budget_s) and prm.budget_s < 600     # Draft: a 1-minute budget shouldn't spend 3 on a copy
+    want_ckpt = prm.checkpoint == "on" or (prm.checkpoint == "auto" and 20000 <= ctx.nF <= CKPT_MAX_TRIS
+                                           and not short)
+    if prm.checkpoint == "auto" and ctx.nF > CKPT_MAX_TRIS and n_free:
+        L(f"  (no safety checkpoint: at {ctx.nF:,} triangles writing one would take longer than the conversion "
+          "itself; set 'Reduce to N triangles first' in Advanced to convert it faster)")
     if want_ckpt and n_free and getattr(ctx, "out_path", ""):
         # a valid STEP before the slow part: exact faces as found, freeform areas as facets
         t_ck = time.time()
         try:
+            L.stage = "building the safety checkpoint"
             regs0 = [{**r, "type": "facet"} if r["type"] == "nurbs" else r for r in regions]
             B0, res0 = prepare(regs0)
             sh0, c0, _ = assemble(regs0, B0, res0)
@@ -4121,6 +4475,8 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
                        tuple((tuple(chains[ci]["verts"]), chains[ci]["kind"], "pts" in chains[ci])
                              for lp in B.region_loops.get(ri, []) for ci, _ in lp))
                 if key not in cache:
+                    L.stage = "fitting surface patches"
+                    L.detail = f"pass {rnd + 1}, region {ri + 1} of {len(regions)}"
                     cache[key] = B.nurbs_face(ri, r)
                 face, dev = cache[key]
                 results[ri] = (face, dev)
@@ -4163,6 +4519,7 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
         rnd += 1
 
     _DEBUG.update(regions=regions, B=B, results=results, ctx=ctx)
+    L.stage = "building faces and sewing them into a solid"
     L("Building faces…")
     st = getattr(ctx, "fill_stats", None)
     if st and (st["coons_tried"] or st["plate_tried"]):
@@ -4212,6 +4569,8 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
         """Targeted repair: regions around open edges or invalid faces become exact facets,
         then everything is sewn again. Returns True once the shape is a clean closed solid."""
         for attempt in range(5):
+            L.stage = "checking and repairing the seams"
+            L.detail = f"attempt {attempt + 1} of up to 5"
             if _sealed(shape):
                 return True
             pts = _free_edge_points(shape)
@@ -4247,9 +4606,16 @@ def _build_surface(ctx, label, planes, tol, prm, L, rep, full=None, regions0=Non
         # The file is what counts: write it, read it back, and repair the same way anything
         # that didn't survive the trip (instead of giving up on every curved face at once).
         protect = 0
+        # (0.11.3) NOTE: do not cut these rounds short. Each one costs minutes on a scan (merge faces, write the
+        # whole STEP, read it back, mesh every face) and finds only 1 to 3 faces that "couldn't be drawn", but
+        # the faces it misses are the ones OpenCascade's mesher then cannot finish: a run whose rounds were
+        # capped at 15 % of the time budget hung for over 6 minutes in the final deviation measurement
+        # (docs/research/SLOW_SCAN_2.md). Only the labels below were added.
         for trip in range(6):
             if not sealed_now:
                 break
+            L.stage = "merging faces for the write-and-read-back check"
+            L.detail = f"round {trip + 1} of up to 6"
             cand = _safe_unify(shape, max(1e-6, tol * 0.05), lambda *a: None, protect=protect, sealed=True)
             ok, pts = check(cand)
             if ok:

@@ -80,6 +80,13 @@ def add_arguments(ap):
                     help="seconds; when passed, patches still outside tolerance become facets at once")
     ap.add_argument("--max-fills", type=int, default=0,
                     help="most slow plate fills per conversion (0 = the profile's allowance)")
+    ap.add_argument("--scan-cleanup", choices=["auto", "on", "largest", "off"], default="auto",
+                    help="before converting: remove loose pieces, cut non-manifold edges, fill scanner holes "
+                         "(auto: only if the mesh is not one closed piece; largest: keep only the biggest piece)")
+    ap.add_argument("--scan-mode", choices=["auto", "scan", "cad"], default="auto",
+                    help="a dense mesh whose small triangles are tilted at random is a 3D scan and gets the scan rules "
+                         "(light denoise, edge-keeping smoothing, a scan-aware route). scan: treat it as one anyway; "
+                         "cad: never (the mesh is left as it is)")
     ap.add_argument("--gap-fill", choices=["plate", "coons+plate", "coons", "off"], default="plate",
                     help="a freeform patch the normal fit misses: plate filler (default), or EXPERIMENTAL "
                          "Coons patch on its outline (coons), Coons then plate (coons+plate), or neither (off)")
@@ -118,7 +125,7 @@ def params_from_args(a, output):
         organic_tol=(a.guess if a.guess and a.guess > 0 else 0.3), use_labels=not a.no_labels,
         save_labelled=save, route=a.route, ladder_guess=not a.no_ladder_guess,
         ladder_rough=not a.no_ladder_rough, budget_s=max(0.0, a.budget), max_fills=max(0, a.max_fills),
-        plane_rule=a.plane_rule, no_ceiling=bool(a.no_ceiling), gap_fill=a.gap_fill,
+        plane_rule=a.plane_rule, no_ceiling=bool(a.no_ceiling), gap_fill=a.gap_fill, scan_cleanup=a.scan_cleanup, scan_mode=a.scan_mode,
         axis=a.axis, source=a.source, slice_at=a.slice_at, height=a.height, simplify=a.simplify,
         smooth_sketch=a.smooth_sketch, symmetric=a.symmetric,
         heights=",".join(repr(v) for v in (cliutil.heights_arg(a.heights) or ())),

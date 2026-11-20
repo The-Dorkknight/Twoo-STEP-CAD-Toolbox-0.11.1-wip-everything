@@ -4,7 +4,7 @@
 The browser interface of the Twoo STEP CAD Toolbox: no Tk or other GUI toolkit needed.
 
 Runs a small web server on 127.0.0.1 (only this computer can reach it) and opens the page in the
-default browser. Files are dropped/uploaded into a work folder, results are saved to the Output
+default browser. Files are dropped/uploaded into a work folder, results are saved to the Files
 folder and offered as a download.
 
 What is generic lives here: the job queue, uploads, downloads, the 3D preview, the performance
@@ -15,6 +15,7 @@ Nothing in this file names a plugin.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -44,6 +45,20 @@ def safe_name(name, default="file"):
 
 
 _safe_name = safe_name        # (older spelling used inside this file)
+
+
+def _project_name(file_name):
+    """The folder name for a file's project: its name without the extension."""
+    stem = os.path.splitext(os.path.basename(file_name))[0].strip(" .")
+    return stem or "project"
+
+
+def _sha1(path):
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _unique(path):
@@ -189,6 +204,7 @@ class App:
         self.jobs = {}       # id -> dict
         self.lock = threading.Lock()
         self.run_lock = threading.Lock()   # previews (one at a time)
+        self.preview_cache = {}            # job id -> preview data (or the exception building it)
         from tostep.core import perf
         self.perf = perf
         self.hw = perf.detect()
@@ -221,11 +237,13 @@ class App:
             raise ValueError("unknown job")
         m = plugin.m
         local = False
+        src_ref_dir = None
         if file_ref.startswith("job:"):
             src_job = self.jobs.get(file_ref[4:])
             if not src_job or src_job["state"] != "done":
                 raise ValueError("That converted file is no longer available")
             src, src_name = src_job["out_path"], src_job["filename"]
+            src_ref_dir = os.path.dirname(src_job["saved_to"]) if src_job.get("saved_to") else None
         else:
             f = self.files.get(file_ref)
             if not f:
@@ -236,6 +254,17 @@ class App:
             raise ValueError(m.reject or f"{m.name} cannot read {ext or 'this'} files")
         jid = secrets.token_hex(6)
         ctx = JobContext(self, plugin, jid, file_ref, src, src_name, local)
+        # (0.11.4) the result goes into the project's own folder, beside the file it was made from: the source's
+        # folder when it is inside Files/, the previous result's folder for a chained job, else Files/<name>/
+        try:
+            if os.path.commonpath([os.path.abspath(src), os.path.abspath(self.out)]) == os.path.abspath(self.out):
+                ctx.dest_dir = os.path.dirname(os.path.abspath(src))
+            elif src_ref_dir:
+                ctx.dest_dir = src_ref_dir
+            else:
+                ctx.dest_dir = os.path.join(self.out, _project_name(src_name))
+        except ValueError:
+            ctx.dest_dir = os.path.join(self.out, _project_name(src_name))
         web = self.webmods.get(plugin.id)
         if web is not None and hasattr(web, "prepare_job"):
             params = web.prepare_job(self, ctx, dict(params or {}))
@@ -275,11 +304,13 @@ class App:
                 try:
                     with open(spec, "w", encoding="utf-8") as fh:
                         json.dump({"plugin": job["plugin"], "src": src, "out": tmp_out, "params": p}, fh)
+                    wenv = self.perf.worker_env(st, dict(os.environ))
+                    job["status_file"] = os.path.join(self.work, job["id"] + ".status.json")
+                    wenv["TOSTEP_STATUS_FILE"] = job["status_file"]
                     proc = subprocess.Popen(
                         [sys.executable, "-E", "-s", "-u", "-m", "tostep.core.worker", spec],
                         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                        encoding="utf-8", errors="replace", bufsize=1,
-                        env=self.perf.worker_env(st, dict(os.environ)))
+                        encoding="utf-8", errors="replace", bufsize=1, env=wenv)
                     job["proc"] = proc
                     if job.get("cancel"):
                         proc.kill()
@@ -305,6 +336,10 @@ class App:
                         elif line.strip():
                             job["log"].append(line)
                     rc = proc.wait()
+                    try:
+                        os.remove(job.get("status_file") or "")
+                    except OSError:
+                        pass
                     if job.get("cancel"):
                         job["state"] = "cancelled"
                         log("Cancelled.")
@@ -321,7 +356,7 @@ class App:
                     shutil.copyfile(tmp_out, dest)
                     lt = job.get("labelled_tmp")
                     if lt and os.path.exists(lt):
-                        ld = _unique(os.path.join(self.out, os.path.splitext(out_name)[0] + "_hardpoints.stl"))
+                        ld = _unique(os.path.join(job["dest_dir"], os.path.splitext(out_name)[0] + "_hardpoints.stl"))
                         shutil.copyfile(lt, ld)
                         job["labelled_saved"] = ld
                         log(f"Saved the hardpoint STL to {ld}")
@@ -330,6 +365,7 @@ class App:
                     job["progress"] = 1.0
                     job["finished"] = time.time()
                     job["state"] = "done"
+                    _prefetch(self, job)
                     pl = self.reg.plugins.get(job["plugin"])
                     if pl and pl.m.chain:
                         self.last_step = job["id"]
@@ -348,8 +384,24 @@ class App:
                         os.remove(spec)
                     except OSError:
                         pass
+                    self._save_log(job, out_name)
             finally:
                 self._release_slot()
+
+    def _save_log(self, job, out_name):
+        """(0.11.4) The whole log of every job, kept as a text file beside the result, so it is still there when
+        the page's console has moved on. Best effort: a read-only folder must never fail a conversion."""
+        try:
+            d = job.get("dest_dir") or self.out
+            os.makedirs(d, exist_ok=True)
+            path = os.path.join(d, os.path.splitext(out_name)[0] + ".log.txt")
+            head = [f"Twoo STEP CAD Toolbox {version.__version__}  job {job['id']}  {job.get('plugin', '')}  "
+                    f"state {job.get('state')}", ""]
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(head + [str(x) for x in job["log"]]) + "\n")
+            job["log_saved"] = path
+        except Exception:  # noqa
+            pass
 
     def diag(self, jid):
         """The diagnostic of a job: one short code that carries its settings and result, the
@@ -541,6 +593,37 @@ def _bad(e, code=400):
     return {"error": str(e) or e.__class__.__name__}, code
 
 
+def _live(job):
+    """(0.11.3) What a running job is doing right now, for the progress line: the stage the worker wrote to its
+    status file, the processor's clock, and (after a minute, then every half minute) anything about the
+    computer's power settings that is holding it back. The worker cannot say any of this while OpenCASCADE has
+    the interpreter lock for minutes at a time; this process can."""
+    if job.get("state") != "running":
+        return {}
+    out = {}
+    now = time.time()
+    try:
+        import json
+        with open(job.get("status_file") or "", encoding="utf-8") as fh:
+            st = json.load(fh)
+        out["stage"] = st.get("stage", "")
+        out["stage_detail"] = st.get("detail", "")
+        out["stage_for"] = max(0.0, now - float(st.get("stage_start", now)))
+    except (OSError, ValueError, TypeError):
+        pass
+    try:
+        from tostep.core import powerinfo
+        if now - job.get("_clock_t", 0) > 4:
+            job["_clock_t"], job["_clock"] = now, powerinfo.clock_text()
+        out["clock"] = job.get("_clock", "")
+        if now - job["started"] > 60 and now - job.get("_power_t", 0) > 30:
+            job["_power_t"], job["_power"] = now, powerinfo.advice(busy=True)
+        out["power"] = job.get("_power", [])
+    except Exception:  # noqa
+        pass
+    return out
+
+
 def _core_routes(r):
     def job_of(app, req):
         return app.jobs.get(req.groups[0])
@@ -552,7 +635,8 @@ def _core_routes(r):
         since = int(req.arg("since", "0"))
         return ({k: job[k] for k in ("state", "progress", "filename", "saved_to", "summary", "error", "started",
                                      "last_msg", "start_at", "kind", "labelled_saved")}
-                | {"now": time.time(), "log": job["log"][since:], "next": len(job["log"])})
+                | {"now": time.time(), "log": job["log"][since:], "next": len(job["log"])}
+                | _live(job))
 
     def r_diag(app, req):
         try:
@@ -578,7 +662,12 @@ def _core_routes(r):
                     else:
                         data = preview3d.mesh_preview(job["src"], job.get("scale", 1.0))
                 else:
-                    data = preview3d.step_preview(job["out_path"])
+                    data = app.preview_cache.get(job["id"])
+                    if isinstance(data, Exception):
+                        raise data
+                    if data is None:
+                        data = preview3d.step_preview(job["out_path"])
+                        _cache_put(app, job["id"], data)
             return data
         except Exception as e:  # noqa
             return _bad(e)
@@ -604,17 +693,67 @@ def _core_routes(r):
     def r_upload(app, req):
         name = _safe_name(req.arg("name", "file"))
         fid = secrets.token_hex(6)
-        path = os.path.join(app.work, fid + "_" + name)
+        tmp = os.path.join(app.work, fid + "_" + name)
         left = req.length
-        with open(path, "wb") as f:
+        h = hashlib.sha1()
+        with open(tmp, "wb") as f:
             while left > 0:
                 chunk = req.read(min(1 << 20, left))
                 if not chunk:
                     break
                 f.write(chunk)
+                h.update(chunk)
                 left -= len(chunk)
+        # (0.11.4) one folder for everything: the file lands in Files/ beside its STEP and log. A file already
+        # there that is byte for byte the same is used as it is (no second copy); the scratch copy is dropped.
+        path = tmp
+        try:
+            os.makedirs(app.out, exist_ok=True)
+            folder = os.path.join(app.out, _project_name(name))      # one folder per project: Files/<name>/
+            dest = os.path.join(folder, name)
+            if os.path.isfile(dest) and os.path.getsize(dest) == req.length and _sha1(dest) == h.hexdigest():
+                path = dest
+                os.remove(tmp)
+            else:
+                n = 2
+                while os.path.exists(dest):                           # same name, different file: its own folder
+                    dest = os.path.join(f"{folder} ({n})", name)
+                    n += 1
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.move(tmp, dest)
+                path = dest
+        except OSError:
+            path = tmp                                   # a read-only folder: convert from the scratch copy
         app.files[fid] = {"path": path, "name": name}
         return {"id": fid, "name": name, "size": req.length}
+
+    def r_scancheck(app, req):
+        """(0.11.4) Does this file look like a 3D scan? Asked by the page before a conversion starts, for files
+        big enough to be one (a binary STL of 100,000 triangles is 5 MB), so the person can answer 'yes, a scan'
+        or 'no, it's CAD'. Quick (a few seconds at 650,000 triangles); any trouble answers 'no, nothing to ask'."""
+        f = app.files.get(req.body.get("file", ""))
+        if not f:
+            return {"likely": False}
+        try:
+            if os.path.getsize(f["path"]) < 4_000_000:
+                return {"likely": False}
+            import trimesh
+            from tostep.plugins.mesh2step import scandetect
+            m = trimesh.load(f["path"], force="mesh", process=True)
+            if len(m.faces) <= scandetect.MIN_TRIANGLES:
+                return {"likely": False}
+            m.merge_vertices()
+            a = scandetect.assess(m)
+            if not a["likely"]:
+                # a scan that is one closed piece looks like this too; loose pieces and holes are the other clue
+                from tostep.plugins.mesh2step import scanclean
+                pieces = len(m.split(only_watertight=False))
+                if pieces > 1 or not m.is_watertight:
+                    a = scandetect.assess(m, True) if pieces > 1 else a
+            return {"likely": bool(a["likely"]), "why": a["why"], "triangles": a["triangles"],
+                    "jitter": round(a["jitter"], 1), "name": f["name"]}
+        except Exception:  # noqa  (a question is an extra: never stand in the way of the conversion)
+            return {"likely": False}
 
     def r_run(app, req):
         b = req.body
@@ -732,6 +871,7 @@ def _core_routes(r):
     r.get("/api/last", r_last)
     r.post("/api/upload", r_upload)
     r.post("/api/run", r_run)
+    r.post("/api/scancheck", r_scancheck)
     r.post("/api/perf", r_perf_set)
     r.post("/api/gpupack", r_gpupack)
     r.post("/api/gputest", r_gputest)
@@ -747,6 +887,34 @@ def _core_routes(r):
 
 
 # ------------------------------------------------------------------ the HTTP handler
+
+
+def _cache_put(app, jid, data, keep=4):
+    """Keep the previews of the last few jobs only (one can be several megabytes)."""
+    app.preview_cache[jid] = data
+    while len(app.preview_cache) > keep:
+        app.preview_cache.pop(next(iter(app.preview_cache)))
+
+
+def _prefetch(app, job):
+    """(0.11.2) The result's 3D preview, built in the background as soon as a job finishes and kept:
+    reading back a big STEP (120 MB, 48,000 faces) took 38 s on a 2-core machine, and longer on a
+    busy laptop, all of it after the user pressed View."""
+    if not str(job.get("out_path", "")).lower().endswith((".step", ".stp")):
+        return
+
+    def go():
+        from tostep.core import preview3d
+        try:
+            with app.run_lock:
+                if job["id"] in app.preview_cache:
+                    return
+                data = preview3d.step_preview(job["out_path"])
+            _cache_put(app, job["id"], data)
+        except Exception as e:  # noqa
+            _cache_put(app, job["id"], e)
+    threading.Thread(target=go, daemon=True, name="preview-" + job["id"]).start()
+
 def make_handler(app: App, page: bytes):
     class H(BaseHTTPRequestHandler):
         server_version = BRAND
@@ -893,7 +1061,7 @@ def build_page(reg=None) -> bytes:
 
 def serve(port=0, open_browser=True, work_dir=None, out_dir=None, open_path=""):
     work_dir = work_dir or os.environ.get("TOSTEP_WORK") or os.path.join(ROOT, "runtime", "work")
-    out_dir = out_dir or os.environ.get("TOSTEP_OUTPUT") or os.path.join(ROOT, "Output")
+    out_dir = out_dir or os.environ.get("TOSTEP_OUTPUT") or os.path.join(ROOT, "Files")
     _lower_priority()
     reg = registry.discover()
     app = App(work_dir, out_dir, reg)

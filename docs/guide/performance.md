@@ -26,6 +26,33 @@ While a job runs, **Cancel** stops it (the work is in a separate process that is
 
 ![Running job with Cancel button](../images/running-cancel.webp)
 
+## Why a long job can sit at 15 % processor, and what the line under the bar says
+Most of a conversion is one thread of work: reducing the mesh, dividing it into patches, building faces, sewing them,
+and above all the **write-and-read-back check** (the whole STEP is written, read again and every round face tested,
+up to six rounds; minutes each on a result of tens of thousands of faces). A laptop with 8 threads shows one busy
+thread as 12 to 15 %, and no profile (not even Extreme) can use more cores for those steps. That is normal, not a hang.
+
+Since 0.11.3 the line under the progress bar says which step it is in and how long it has been there, for example
+*now: building faces and sewing them into a solid (4:12 in this step) · CPU 3.9 of 4.1 GHz*. The log gets a
+"still ..." line when it can, and a finished job ends with *Where the time went*.
+
+## Power settings
+A laptop can be several times slower on battery or in a power-saving mode than the same laptop plugged in on
+"performance", and the converter cannot fix that for you. It reads the settings and says so: at the start of a job
+(battery, power-saving mode, turbo boost off, processor capped), and after about a minute in the progress line if the
+processor, while busy, runs under 45 % of its top clock.
+
+| System | Where to set it |
+|---|---|
+| Linux Mint / Ubuntu / Fedora | plug in; Power Management in the system settings, or `powerprofilesctl set performance` (profiles: `power-saver`, `balanced`, `performance`) |
+| Windows 10/11 | plug in; Settings > System > Power & battery > Power mode: *Best performance* |
+| macOS | plug in; System Settings > Battery: Low Power Mode off |
+
+Linux note: on Intel laptops the governor name `powersave` is the normal dynamic mode (the `intel_pstate` driver) and
+is *not* reported; what matters is the energy preference (`power` / `balance_power` hold the clock back), turbo boost
+(`/sys/devices/system/cpu/intel_pstate/no_turbo` = 1 means off) and heat. A thin laptop at 100 % on all threads for
+half an hour often lowers its own clock to stay cool; the clock shown in the progress line says when that happens.
+
 ## Big meshes and slower computers
 Speed only affects how long a job takes; running out of memory is what can crash it.
 Measured peak memory:

@@ -18,6 +18,25 @@ On a test plate with rounded corners, a slot, a D-shaped hole, a hex hole, a rou
 
 Limits: it only applies to *Extrude outline* (not Loft, not Smooth surfaces). A loop that can't be fitted within tolerance stays as straight segments, and the log says so. Noisy or scanned outlines come out in more pieces. A very coarse round fillet (steps over 25°) is read as corners. The plug-ins don't offer it yet.
 
+## Is it a 3D scan? (new in 0.11.4)
+A mesh over 100,000 triangles whose small triangles are tilted a few degrees at random is a 3D scan; a CAD export or a clean
+model is flat or smooth to a fraction of a degree. Before it converts such a file the page asks: **Yes, treat it as a scan**
+(smooth the fuzz off while keeping real edges, thin the mesh out, guesstimate freeform areas), **No, it's CAD: use Classic**, or
+Cancel. *Advanced → Is it a 3D scan?* answers it once and for all. A scan that is not a turned or flat-sided part is converted
+as in 0.11.3. Details and measurements: `docs/research/SCAN_EDGES.md`.
+
+## 3D scans (new 18 November 2026)
+Scans bring things a CAD export doesn't: floating fragments, bits of the turntable, holes the scanner couldn't
+see, and noise. **Scan clean-up** (Advanced; automatic when the mesh isn't one closed piece) removes loose pieces,
+cuts edges shared by three or more triangles and fills the holes. Since 0.11.3 a **dense mesh counts as a scan even when it is one closed piece**
+(over 150,000 triangles, which is what a real scan is): it is denoised lightly (3 passes, only if there is noise to
+remove; a clean dense mesh is left exactly as it was; set *Denoise iterations* to change it) and reduced to 150,000
+triangles before anything else, provided that moves the surface by no more than half the tolerance. *Scan clean-up:
+off* skips all of it. Use **Draft** or **Quick** for scans: on a 653,000-triangle stand-in scan Draft took 7.7 minutes
+(65 flat and 390 round faces recognised, worst gap 0.085 mm). If the scan stands on a turntable plate, choose
+*Keep only the largest piece*. A noisy scan still comes out partly as exact facets. Details:
+[SCAN_CLEANUP.md](../research/SCAN_CLEANUP.md).
+
 ## Guesstimate organic areas (optional, off by default)
 ![Settings with Guesstimate switched on](../images/guesstimate.webp)
 

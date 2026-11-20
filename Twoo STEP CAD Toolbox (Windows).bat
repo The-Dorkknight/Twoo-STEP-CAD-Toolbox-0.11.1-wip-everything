@@ -12,7 +12,7 @@ rem x64 build also on ARM Windows (runs emulated): the CAD library has no ARM bu
 set "RT=%ROOT%runtime\x86_64-pc-windows-msvc"
 if not exist "%RT%" mkdir "%RT%"
 if not exist "%ROOT%runtime\tmp" mkdir "%ROOT%runtime\tmp"
-if not exist "%ROOT%Output" mkdir "%ROOT%Output"
+if not exist "%ROOT%Files" mkdir "%ROOT%Files"
 
 set "PYTHONHOME="
 set "PYTHONPATH="
@@ -34,7 +34,7 @@ set "TMP=%ROOT%runtime\tmp"
 set "TEMP=%ROOT%runtime\tmp"
 set "MPLCONFIGDIR=%ROOT%runtime\tmp\matplotlib"
 set "TOSTEP_WORK=%ROOT%runtime\work"
-set "TOSTEP_OUTPUT=%ROOT%Output"
+set "TOSTEP_OUTPUT=%ROOT%Files"
 
 call :find_py
 if defined PY goto have_py

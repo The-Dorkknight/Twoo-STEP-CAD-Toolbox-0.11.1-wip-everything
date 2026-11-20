@@ -3,8 +3,8 @@
 ### A defensive publication of how EVERYTHING to solid (formerly STL2STEP) turns triangle meshes into CAD solids, with all the free research behind it
 
 **Matthew Armstrong** ([github.com/The-Dorkknight](https://github.com/The-Dorkknight)) · United Kingdom<br>
-First published 23 October 2026 · describes EVERYTHING to solid **0.10.2-wip** (D1–D15) and its successor Twoo STEP CAD Toolbox **0.11.1-wip** (D16–D19)<br>
-Repositories: <https://github.com/The-Dorkknight/twoo-step-cad-toolbox> (current) and <https://github.com/The-Dorkknight/stl2step> (frozen) · document version 1.4 (11 November 2026: a measured correction under D16, Intel graphics; the cat-like test mesh's size corrected in D18 and section 6: 64,950 triangles, not 82,000) · version 1.3 (2 November 2026, evening: D18 and D19 added, Figure 3 redrawn with today's status, sections 6 and 7 updated) · version 1.2 (2 November 2026: figures and screenshots added; D16 and D17 added; sections 4, 5, 6 and 7 updated) · D1–D15 are unchanged from 24 October 2026
+First published 23 October 2026 · describes EVERYTHING to solid **0.10.2-wip** (D1–D15) and its successor Twoo STEP CAD Toolbox **0.11.1-wip** (D16–D19), **0.11.2-wip** (D20–D25) and **0.11.3-wip** (D26–D28) and **0.11.4-wip** (D29–D30)<br>
+Repositories: <https://github.com/The-Dorkknight/twoo-step-cad-toolbox> (current) and <https://github.com/The-Dorkknight/stl2step> (frozen) · document version 1.7 (19 November 2026: D29–D30 added, edge-keeping smoothing of scans with real edges pinned, the scan test by the tilt of neighbouring triangles, the question before a scan is converted, and what the benchmarks found) · version 1.6 (19 November 2026: D26–D28 added, why a closed scan was still slow, the progress line that survives a locked interpreter, where the time went and a failed experiment; one figure) · version 1.5 (18 November 2026: D20–D25 added, 3D scans, the SolidCraft link and two ideas; four figures; section 0's running joke retired) · version 1.4 (11 November 2026: a measured correction under D16, Intel graphics; the cat-like test mesh's size corrected in D18 and section 6: 64,950 triangles, not 82,000) · version 1.3 (2 November 2026, evening: D18 and D19 added, Figure 3 redrawn with today's status, sections 6 and 7 updated) · version 1.2 (2 November 2026: figures and screenshots added; D16 and D17 added; sections 4, 5, 6 and 7 updated) · D1–D15 are unchanged from 24 October 2026
 
 *Written with AI assistance (Claude, from Anthropic). Every number in it was measured by the project's own code
 on a 2-core Linux test machine unless it says otherwise. Not legal advice.*
@@ -17,7 +17,7 @@ EVERYTHING to solid is a free (non-commercial), offline program that turns an ST
 triangles, into a STEP solid, which is the kind of file a CAD program can edit: true planes, cylinders, spheres,
 surfaces of revolution and smooth NURBS patches, closed into one watertight body. This paper puts every method the
 program uses, with its parameters and its variants, into the public record, so that nobody can later patent them
-and stop people using them. It covers nineteen disclosures. The largest are:
+and stop people using them. It covers thirty disclosures. The largest are:
 
 - a **quad-patch engine for organic shapes**: lay the mesh out as quads, turn every quad edge into a curve on the
   mesh, fill every quad with a Coons patch, then fit the insides of all patches to the mesh at once in one
@@ -32,14 +32,25 @@ and stop people using them. It covers nineteen disclosures. The largest are:
   weak computers, both measured and both with their limits stated plainly (D16, D17);
 - (version 1.3) a **Coons gap filler** built on the patch's own outline, grown outwards and trimmed back, measured
   patch by patch against the plate filler (D18), and a **first measurement of the per-region hybrid**, which is not
-  built (D19).
+  built (D19);
+- (version 1.5) **3D scans**: a clean-up before conversion, light denoising, a plain pre-reduction and a reduction
+  that cannot silently fall back to every triangle took a scan from **3 hours to under 8 minutes** (D20); a patch
+  layout that reads only its own part of the mesh (D21); a preview made while the user reads the log (D22); a link to
+  the SolidCraft CAD program through its control channel (D23); and two ideas, not built: **two triangles for a
+  flat** (D24) and **denoising inside face groups** (D25);
+- (version 1.6) **a closed dense mesh is a scan**, noise told from crisp CAD by the median move of the points under
+  a smoothing pass (D26); a **progress line that survives a locked interpreter** and a read-only check of the
+  computer's **power settings** (D27); and where the time of a scan really goes: **68 % in one write-and-read-back
+  loop**, and the experiment that failed (D28);
+- (version 1.7) **edge-keeping smoothing** of scans with real edges pinned, and a **scan test by the tilt of
+  neighbouring triangles** (D29); **asking whether it is a scan**, and giving an organic scan back what it had (D30).
 
 It also gathers, in one place, the findings of the project's free research reports (literature, measurements, and
 ideas that turned out to be bad), which are published in full in the same folder.
 
 ---
 
-## 0. Why this paper exists (and why it makes me only slightly more employable)
+## 0. Why this paper exists
 
 A patent lets its owner stop everyone else from using an idea for twenty years. You can only patent something that
 is *new*: if it was already published, an examiner should refuse the patent, and a granted one can be challenged.
@@ -60,9 +71,7 @@ Two honest notes before we start:
    novelty). That is the point: the project is source-available for non-commercial use, and the aim is that the
    methods stay usable by everyone, while the *code* stays under its licence (PolyForm Noncommercial 1.0.0).
 
-Running tally: after the hardpoint paper (*A POINT of contention*), this is the second defensive publication. Each
-one makes the author approximately 0.4 % more employable, which at the current rate means a job offer some time
-in 2061.
+Running tally: after the hardpoint paper (*A POINT of contention*), this is the second defensive publication.
 
 ---
 
@@ -818,6 +827,309 @@ shared edges and check the result as in D15. Variants: the same with any quad re
 triangle-quad mixes at the boundary; with the exact faces made first and the quad layout told their edges; and per
 smooth component (split at sharp edges, each component laid out alone with its boundary fixed).
 
+### D20. Scan clean-up before conversion, and a reduction that cannot silently fall back (0.11.2; paper version 1.5, 18 November 2026)
+
+**Problem.** A 3D scan of a Sequre S99 soldering iron (Thingiverse, "Sequre S99 3d scan", alonym, 27 April 2026;
+620,924 triangles) took **185 min 56 s on Draft** on the author's Linux laptop and came out as 46,725 faces (871
+faceted areas, 10 flat, 10 round, no NURBS), worst gap 2.03 mm. Draft is meant to reduce a mesh to 50,000
+triangles and stop refining after a minute. Neither happened.
+
+Thingiverse could not be reached from the test machine, so a **stand-in scan** was made with the same faults: a
+pen-shaped iron (tip cone, grip ribs, a flat display window) as 653,119 marching-cubes triangles, 0.04 mm noise,
+three holes, 40 floating fragments and a turntable plate. The causes, each measured on it:
+
+| Cause | Evidence |
+|---|---|
+| Loose fragments and the plate | each fragment became its own curved area; the plate made the route "prismatic" instead of "lathe" |
+| Noise | the smooth body fell apart into **3,192 to 3,227** curved areas; a denoised copy had **1** |
+| The feature-keeping reduction could not stay closed on the noisy mesh | it then used **every** triangle: Draft's 50,000 became 620,000, with only one log line to say so |
+| The safety checkpoint (D7) is built from every triangle | 60,000 facets 80 s, 119,000 facets 346 s |
+| No sign of life | 30 minutes without a log line |
+
+**Method.**
+
+1. **Scan clean-up**, automatic when a mesh is not one closed piece (also: on, keep only the largest piece, off):
+   - *loose pieces*: drop every piece under 20 triangles or 0.1 % of the largest piece's area, and every **open**
+     piece under 2 %; small **closed** pieces stay (a screw in an assembly is closed; scanner spray is not).
+     *Keep only the largest piece* is for a scan standing on its turntable plate;
+   - *non-manifold edges*: cut every triangle on an edge with three or more triangles;
+   - *holes*: walk each boundary loop in its triangles' own direction; fill it flat in its best-fit plane (ear
+     clipping) if its outline is simple there, else with a fan from its middle point; reversed so the patch faces
+     the same way as the mesh. A hole is filled only if its outline's **extent** is under a quarter of the part's
+     size. Not its length: a scanner hole's edge zig-zags along the triangles, and a test hole 10 mm across had a
+     **480 mm** outline.
+2. **Light denoise for scans**: a mesh over 100,000 triangles that needed the clean-up gets three Taubin passes.
+   Against the noise-free stand-in: noise median 0.018 → 0.009 mm, 99th percentile 0.071 → 0.061 mm. Ten passes
+   rounded edges (99th percentile 0.118 mm); capping each point's movement at a third of the tolerance helped less.
+3. **Plain pre-reduction of scans**: a cleaned scan over 150,000 triangles is reduced by plain quadric reduction
+   before anything else is looked at (3 s; the surface moved 0.004 mm typically, 0.031 mm at most).
+4. **A reduction that cannot fall back silently**: when the outline-locked reduction of D4 cannot stay closed, a
+   plain quadric reduction to the same count stands in, kept only if it stays closed, with how far it moved the
+   surface in the log. Only if that fails too does the full mesh go on.
+5. **A cheaper safety copy**: the checkpoint is made automatically only up to 60,000 triangles, and not at all when
+   the time budget is under ten minutes (a one-minute Draft budget should not spend three minutes on a copy).
+6. **Quick reduces too**: meshes over 60,000 triangles, as Draft does over 50,000.
+
+![What a scan goes through now: load, scan clean-up, light denoise, plain reduce, find faces, reduce, fit and build, STEP](images/fig-scan-pipeline.png)
+
+*Figure 20. The path of a scan through the converter since 0.11.2. Green: new or changed for scans.*
+
+**Measured** (stand-in scan, 2-core Linux machine):
+
+![Bar chart of conversion times for the scan, before and after](images/fig-scan-times.png)
+
+*Figure 21. The same scan, step by step. Top row: the real scan on the author's laptop. The rest: the stand-in,
+2-core Linux machine. Hatched: stopped before finishing.*
+
+| Run | Time | Result |
+|---|---|---|
+| Quick, before | stopped after 38 min | silent for 30 min in patch layout |
+| Quick, clean-up and the faster layout (D21) only | stopped at 12.6 min | 23,500 patches and counting: the noise |
+| Draft, clean-up and light denoise, no pre-reduction | 16.7 min | closed, valid; 48,151 faces (84 flat, 1,077 faceted areas); 0.075 mm |
+| **Quick, all of the above** | **8.4 min** | closed, valid, worst gap **0.052 mm**, but all 59,428 faces are facets |
+| **Draft, all of the above** | **7.7 min** | closed, valid; **65 flat, 390 round**, 2 NURBS, 805 faceted areas; 0.085 mm |
+| Clean-up, 10 Taubin passes, plain reduction to 60,000, then Quick (older code) | 4.4 min | closed, valid; 19 flat, 14 round, 13 NURBS, 13 faceted areas; 0.158 mm |
+
+**Reading it.** Every change helped, but the noise decides the result: the last row, smoothed hardest, gave the
+most real surfaces fastest, at the price of edges rounded by up to about 0.3 mm. The real scan has not been re-run
+yet; its 2.03 mm worst gap was probably the fragments and holes.
+
+**Variants disclosed.** Loose pieces judged by area, triangle count, volume, distance from the main body or
+closedness, in any combination, with any thresholds; hole size by extent, area, length or point count; holes filled
+by ear clipping, fans, advancing fronts, minimal-area or curvature-continuous patches, or by a local rebuild from a
+signed distance; non-manifold edges cut, split or repaired by keeping the two most consistent triangles; denoising by
+Taubin, Laplacian, bilateral or normal filtering, a fixed or measured number of passes, with or without a movement
+cap; triggered by size, by the clean-up having acted, or by a measured noise level; the pre-reduction by any
+reducer, to a fixed count, a fraction or an error bound; and the plain fallback for any reduction that fails a
+closedness or accuracy check.
+
+### D21. Patch layout that reads only its own part of the mesh (0.11.2; paper version 1.5)
+
+The patch layout (not described earlier in this paper, so here) cuts a smooth area that is neither flat nor an
+exact shape into the pieces that each become one NURBS patch. It splits the area again and again until every piece is
+a topological disk, bends less than a set angle and is not too large: each split seeds k points far apart on the
+triangles' neighbour graph (edge weights: distance × (1 + 8 × (1 − cos of the angle between the two triangles))), grows a geodesic
+Voronoi region from each by Dijkstra's algorithm, moves the seeds to their regions' centres a few times (Lloyd), and
+hands each region's stray fragments to the neighbour they touch most, so noisy meshes do not shatter into specks. Each split built its piece's graph by masking **every**
+neighbour pair of the **whole** mesh: on a 648,000-triangle scan, 9.9 ms per call and thousands of calls. Since
+0.11.2 the whole graph is stored once, row by row (each pair under its first triangle), and a piece's graph is read
+from its own rows, with a reusable index map set and cleared around each call. On 30 random pieces of 50 to 20,000
+triangles the result is **identical** (largest difference 0), and a call takes **1.7 ms** instead of 9.9. The layout
+also writes a line every 20 s ("still dividing curved areas into patches: N so far, M waiting").
+
+### D22. The result preview made while the user reads the log (0.11.2; paper version 1.5)
+
+Showing a result in 3D means reading the STEP back and meshing every face. For a 48,000-face, 119 MB result that
+took 50 s on the 2-core machine (38 s of it reading the file), and the author's laptop sat on "Loading…" for over
+ten minutes. Since 0.11.2 the preview is started in the background **as soon as the job finishes**, and the last
+four are kept, so pressing View either shows it at once or joins the work already under way.
+
+### D23. A link to a CAD program through its own control channel (0.11.1-wip; paper version 1.5)
+
+SolidCraft (an open-source, Fusion-style CAD program) has no plug-in runtime yet, and its licence rules forbid
+OpenCASCADE-based code in its tree. It does have a **control channel**: a local TCP port, one JSON object per line,
+a per-launch token in a file only the user can read, and every toolbar command available as `engine.execute`. The
+toolbox links to it from the outside: it asks which bodies are selected (`selection.get`), has SolidCraft write each
+one as STL (`file.export_stl`), converts it **in a separate process** (so a crash or a memory spike can't take the CAD
+program down), and inserts the STEP as a new component named after the body (`file.insert_step`). The mesh body is
+left alone. The app shows it as two controls: *take the selected mesh body from SolidCraft* under the drop area, and
+*Send to SolidCraft* on every STEP result.
+
+![A finished conversion with Send to SolidCraft pressed: "In SolidCraft as Knob scan"](images/solidcraft-send.webp)
+
+*Figure 22. Send to SolidCraft, against the stand-in that follows SolidCraft's published protocol. A real SolidCraft
+has not been tried yet.*
+
+**Variants disclosed.** The same through any CAD program's scripting, automation, MCP or control interface, local
+or remote; by file exchange in a watched folder; triggered from either program; with the result replacing, hiding
+or sitting beside the mesh; for single bodies, selections or whole documents; and for any of the toolbox's
+converters (mesh, OpenSCAD, image, Jetwash).
+
+### D24. Two triangles for a flat: dropping straight-edge points on both faces at once (idea; paper version 1.5)
+
+**Not built.** Today's outline-locked reduction (D4) rebuilds a flat from its outline only, but keeps every outline
+point, because the face on the other side of the edge uses them too. Measured: a 40 mm cube meshed with 128
+triangles per face (768 in all) reduces to **180** triangles (about 30 per face, one per outline point), and its
+STEP is 6 faces, 0.000 mm off. A point that lies on a **straight sharp edge between two flats**, within the
+tolerance of the line through its neighbours, can be dropped from **both** faces at once, and the cube becomes
+**12** triangles, still closed and exact. On a scan, "straight" means straight within the tolerance, so the result
+stays within it. It is about tidiness and memory, not the output: the STEP already has one face per flat.
+
+![One cube face: the 128-triangle input, 30 triangles today, 2 triangles proposed](images/fig-flat-outline.png)
+
+*Figure 23. One flat face of a 40 mm cube, three ways. In the STEP file it is one plane every time.*
+
+**Variants disclosed.** The same along any edge whose points lie on one known curve (a line, a circle or arc
+between a flat and a cylinder, a lathe profile), dropping or re-spacing points on both sides together; by edge
+collapse restricted to edge-aligned collapses; before or after reducing the faces' insides; and with the dropped
+points' positions kept as a check.
+
+### D25. Denoising inside face groups, never across them (idea; paper version 1.5)
+
+**Not built.** The author's suggestion: group the triangles first (flat, round and smooth groups, cut at sharp
+edges, as Fusion's "Generate Face Groups" does), delete specks, and only then denoise, **within each group**. Points
+inside a group are smoothed with neighbours from the same group only; points on a group border are smoothed only
+along the border line; corners are not moved; flats can be projected straight onto their plane instead of smoothed.
+D20's measurements say why: three plain passes keep the edges but leave enough noise for many areas to end up as
+facets, and ten passes give real surfaces but round the edges by up to about 0.3 mm. Smoothing that never crosses an
+edge should give the second without the first.
+
+**Variants disclosed.** Groups from plane and shape fitting, normal clustering, curvature, or a hardpoint STL's
+labels (D14); any smoothing filter applied per group; border lines smoothed as
+curves; groups refined after smoothing and smoothed again; and the same per-group smoothing for meshes that are not
+scans.
+
+### D26. A closed dense mesh is a scan: noise told from crisp CAD by how far a smoothing pass moves the points (0.11.3; paper version 1.6, 19 November 2026)
+
+**Problem.** The real S99 scan (620,944 triangles) is **one closed piece**, so D20's clean-up, which starts only when a
+mesh is not one closed piece, did nothing, and neither did the denoise and pre-reduction that were tied to it. The
+guesstimate reduction then worked on all 620,000 triangles (351 s on the author's laptop) and the noisy mesh was fitted
+as it was: 31 minutes later it was still running, its last log line 21 minutes old.
+
+**Method.**
+
+1. A mesh above **150,000 triangles** is treated as a scan, closed or not (as is any mesh D20's clean-up changed).
+   *Scan clean-up: off* skips everything below.
+2. Above 100,000 triangles, **three Taubin passes**, and the **median distance the points moved** decides whether
+   there was noise: on the test scan the median point moved 0.054 mm (0.63 of the 0.085 mm tolerance; 99 % moved less
+   than 0.118 mm), on a clean 917,504-triangle box **0.0000 mm** (flat areas do not move; the largest move, at the
+   edges, was 0.075 mm, so the largest move cannot tell them apart). If the median is under **a tenth of the tolerance**
+   the vertices are put back exactly as they were.
+3. A **plain quadric reduction to 150,000 triangles** (3.4 s on 648,638), kept only if 8,000 sample points of the
+   surface moved by no more than **half the tolerance**; if they moved more, once more at 300,000. A clean box was
+   reduced 917,504 → 299,998 for that reason, the surface moved by 0.000 mm.
+4. The denoise comes **before** the reduction because the reduction needs it: on the noisy test scan the reduction
+   without it came out **not closed** (16 non-manifold edges that hole filling does not close), and with each point's
+   move capped (0.043 mm, 0.09 mm) it did too; with three plain passes it stayed closed (3.3 s, moved 0.004 mm
+   typically, 0.030 mm at most). A reduction that still comes out open is repaired, by cutting the triangles on
+   non-manifold edges and closing the holes (D20), and kept if that closes it.
+
+**Measured** (closed noisy stand-in, 648,638 triangles, Quick, 2-core machine). The guesstimate reduction took **17 s**
+(150,000 → 84,752) where it had been working on the full mesh; patch layout was finished at **98 s**, where the
+previous build was still going at 4 minutes with 1,782 patches; the whole run took 15.9 minutes (D28) and ended closed
+and valid with 9,702 faces (98 flat, 113 round, 233 NURBS patches, 427 areas kept as facets), mean deviation 0.026 mm.
+
+**Variants disclosed.** "Dense" judged by triangle count, area, mean edge length or file size; the noise test by the
+median, mean, a percentile or any statistic of the points' move after any smoothing (Taubin, Laplacian, bilateral,
+normal filtering), or of the triangles' normals or the edges' angle histogram; the points restored, or kept, or
+moved part of the way; the reduction by any reducer, to a count, a fraction or an error bound, with any retry
+schedule; and the repair of an open reduction by cutting, splitting or re-triangulating non-manifold edges.
+
+### D27. Progress that survives a locked interpreter: a status file read by another process, the processor's clock and the power settings (0.11.3; paper version 1.6)
+
+**Problem.** OpenCascade holds Python's interpreter lock for minutes while it writes, reads, meshes or sews a large
+shape. A heartbeat thread inside the converter printed between such calls ("still checking the solid (writing and
+re-reading the STEP) (0:01 in this step, 5:55 in all)") and nothing during them, and the person watching cannot tell
+that from a hang.
+
+**Method.** The conversion names each **stage** ("reading and cleaning the mesh", "dividing curved areas into
+patches", "fitting surface patches", "building faces and sewing them into a solid", "merging faces for the
+write-and-read-back check", "checking the solid (writing and re-reading the STEP)", "writing the STEP", "measuring the
+result against the mesh", ...) with a detail text ("pass 2, region 41 of 770", "round 3 of up to 6"), and writes both,
+with the times, into a **small file**, atomically, the detail at most once a second. The program's **server, another
+process**, reads that file with each poll of the page and adds the **processor's clock** (current against top speed) and,
+after a minute and then every half minute, what the computer's **power settings** are doing to it. The page shows "now:
+building faces and sewing them into a solid (4:12 in this step) · CPU 3.9 of 4.1 GHz · warning". The stage times are
+added up and a finished run ends with *Where the time went* (the steps that took 5 % or more).
+
+The **power findings**: running on battery; a power-saving mode (Linux power-profiles-daemon `power-saver`, the Windows
+power plan, macOS Low Power Mode); the processor's energy preference (`power`, `balance_power`); turbo boost off
+(`intel_pstate/no_turbo`); a performance cap (`max_perf_pct` under 100); a governor `powersave` on drivers other than
+`intel_pstate` and `amd-pstate` (on those it is the normal dynamic mode); and, only while the processor is busy, a clock
+under 45 % of its top speed (idle, every laptop runs slowly). Read-only; every fact best effort.
+
+**Variants disclosed.** The same status through a pipe, a socket, shared memory or a log line with a reserved prefix;
+read by the server, by the page or by another program; the stages named by any granularity; the clock from any source;
+the findings shown in the page, the log, a notification or a dialog; and the same for any converter in the program.
+
+### D28. Where the time went on a scan, and an experiment that failed (0.11.3; paper version 1.6)
+
+![Where the time went on a closed scan: the author's real run, and the closed stand-in with this build](images/fig-where-time.png)
+
+*Figure 30. Top: the real scan on the author's laptop (stopped at 31 min 37 s; the stages were not named then).
+Bottom: the closed stand-in with this build, 2-core machine, Quick preset.*
+
+**Measured.** Of the 15.9 minutes, **10 min 46 s (68 %) was the write-and-read-back check** that follows face building:
+up to six rounds, each merging faces, writing the whole STEP (about 10,000 faces, 427 areas of facets), reading it
+back, meshing the whole shape and testing every round face, then making the 1 to 3 faces it found into facets (2, then
+3, then 1, then 3). A round took 3 to 4 minutes. It is one OpenCascade thread: **on an 8-thread processor one busy
+thread is 12 to 15 %**, whatever performance profile is chosen, which is the author's "40 percent at first, then 15
+percent": the first minutes (reduction, matrix work) use several threads, the rest uses one. Patch layout, fitting
+and face building took 1 min 8 s, 1 min 8 s and 1 min 3 s.
+
+**An experiment that failed.** The rounds were given 15 % of the time budget (at least 4 minutes), the faces found by
+the last round being made facets and the file written without another read-back. The run stopped the rounds at
+6 min 45 s as designed, and then **hung for over 6 minutes in the deviation measurement**, inside the mesher, where the
+uncapped run took 28 s: a face the mesher cannot finish is what a round finds, and a round that is not run does not find
+the next one. **Reverted.** The conclusion, recorded here so that it is not tried again the same way: the repair rounds
+keep the file drawable, and what could shorten them is a cheaper way of finding the undrawable faces before the first
+full round, not fewer rounds.
+
+**Variants disclosed.** Any test for faces a mesher cannot draw that runs before a full write and read-back (a
+standalone mesh of each face, of each face with its neighbours, a coarser mesh, a time-limited mesh in a child
+process); a write-and-read-back of only the curved faces with the facets as one shell; and rounds whose number or
+share of the time is set by the profile, with the faces still undrawn at the end made facets whole.
+
+### D29. Edge-keeping smoothing of a scan, with points on real edges pinned, and a scan told from clean CAD by the tilt of neighbouring triangles (0.11.4; paper version 1.7, 19 November 2026)
+
+**Problem.** Noise of 0.04 mm on triangles of half a millimetre tilts neighbours by about 10 degrees (median 9.8°), so 11 %
+of a scan's edges look sharper than a 30-degree crease, and the patch layout cut the stand-in into **1,514 freeform patches
+of about 15 triangles**. Plain smoothing (Taubin, Laplacian) rounds the real edges off with the noise; and the 0.11.3 test
+for noise (how far three smoothing passes move the points) called two **clean** organic meshes scans.
+
+**Method.**
+
+1. **Scan test.** Over **100,000 triangles**, the median angle between neighbouring triangles among the edges under 30
+   degrees. A scan: 13.1°, 13.2°, 13.3° on three stand-ins. Clean: box 0.00°, cylinder 0.00°, marching-cubes ghost
+   0.09°, clean iron 0.00 to 0.06°. **2 degrees or more** is a scan; so is a dense mesh the scan clean-up (D20) had to act
+   on. (Nothing clean was within a factor of 20 of the line.)
+2. **Directions first.** Bilateral filtering of every triangle's direction over the triangles that share a point with it,
+   each neighbour weighted by distance, area and **how like its own direction it is** (a Gaussian of the difference of the
+   two unit directions, sigma 0.25), five passes.
+3. **Then the points.** Fifteen passes moving each point along the filtered directions of its triangles so they agree
+   with them. **A point is pinned**, never moved, where its triangles' *filtered* directions still differ by more than
+   40 degrees (a real edge or corner); judged on the unfiltered directions noise alone pinned a tenth of a scan's points.
+   A triangle turned over by the move is a fold: its points go back.
+4. **Measured** (150,000-triangle stand-in, against the noise-free shape it was made from): neighbours 9.8° → 1.1° apart,
+   mean distance to the true shape 0.0131 → 0.0067 mm (0.0080 with pinning), 2.4 s. Wider windows or more passes
+   smoothed more and moved the surface away (0.0266 mm at sigma 0.5, 10 passes). On a clean dense box the largest move was
+   **2.4 tolerances without pinning, 0.10 with it**.
+5. **A scan route.** On a scan whose route is lathe or prismatic: no histogram-chosen crease angle (it is the noise's
+   valley, and cut the stand-in into 85 pieces), the freeform leftover is guesstimated (D-ladder), and the already reduced
+   and smoothed mesh is not reduced again piece by piece (that folded it into slivers: 19 % of its edges over 30° against 6 %).
+
+**Variants disclosed.** The tilt measured by any statistic (median, mean, percentile) of the angles between neighbouring
+triangles, of each triangle's direction against the mean of its neighbours', or of the edges' angle histogram; the
+threshold, the triangle count and the clean-up condition set otherwise; the filtering by any direction-aware weight
+(bilateral, guided, joint, anisotropic, tensor voting, L0 or L1 minimisation of the directions) over any neighbourhood
+(vertex, edge or ring); the points moved by any scheme that makes them agree with the filtered directions; pinning by any
+test of the filtered directions or curvature; and the whole offered or applied by any program to a mesh it takes to be a
+scan.
+
+### D30. Asking the person whether it is a scan, and giving an organic scan back what it had (0.11.4; paper version 1.7)
+
+**Problem.** "Everything is a scan" harms clean CAD. Measured on a clean 786,000-triangle box: the 0.11.3 plain pre-reduction
+of every dense mesh turned its **6 faces into 11** (4 NURBS, 1 facet) and a bent organic stand-in scan went from **307 s**
+(0.11.3) to **over 18 minutes without a result** with the smoothing and the scan route.
+
+**Method.**
+
+1. **The question.** Before a conversion of a file over 4 MB the page asks the server, which loads the mesh and applies the
+   scan test (a few seconds at 650,000 triangles); only if it says scan does the page ask: *treat it as a scan* / *it's CAD:
+   use Classic* / cancel. A setting (*auto*, *scan*, *cad*; command line `--scan-mode`) answers it for good. Clean CAD,
+   small files and meshes the test cannot load are never asked about.
+2. **Only scans are reduced and smoothed.** A mesh that is not a scan is left exactly as it was.
+3. **Give back what it had.** After the route is chosen, a scan whose route is neither lathe nor prismatic goes back to the
+   points it had before the edge-keeping smoothing (kept beside the mesh) and takes the route it took in 0.11.3: **339 s,
+   8,239 faces, worst 0.244 mm** against 307 s, 8,487 faces, 0.267 mm.
+4. **The benchmark as a guard.** The golden gate (nine small parts) found a crash of the scan clean-up on a part of two
+   small boxes (every piece under 20 triangles was a "speck"), and a dense-box check found the five extra faces; both are
+   fixed, and the dense box is a standing check.
+
+**Variants disclosed.** The question asked by a dialog, a banner, a prompt or a command-line flag, before or during a
+conversion; the answer remembered per file, per folder or per person; the check run by the server, the page, the worker or
+a plug-in; any route test deciding afterwards that the smoothing is undone or kept; and the same for any converter.
+
 ---
 
 ## 4. The free research, in one place
@@ -866,6 +1178,14 @@ findings, including the ideas that turned out to be bad, because bad ideas are p
   drop-in plug-in system, and the Image → STEP tab's tracing and calibration sheet.
 - **[GHOST_CAT.md](GHOST_CAT.md)**: the first real-world field report (section 5).
 - **[../guide/gpu.md](../guide/gpu.md)** and **[../guide/performance.md](../guide/performance.md)** (v1.2): what the graphics card does and does not speed up, the card-by-card support table with its sources, the profiles, and why a card cannot make a whole job many times faster (D16, D17).
+- **[SCAN_EDGES.md](SCAN_EDGES.md)** (v1.7): the smoothing's numbers, the scan test's table, the dialog, and what the box and ghost
+  benchmarks found (a crash, five extra faces, an organic scan that got slower).
+- **[SLOW_SCAN_2.md](SLOW_SCAN_2.md)** (v1.6): why the real, closed scan was still slow, the noise test's numbers, where the
+  time went, the power settings that are read, and the time-cap experiment that hung.
+- **[SCAN_CLEANUP.md](SCAN_CLEANUP.md)** (v1.5): why a scan took three hours, every run in order, the denoise
+  comparison against the noise-free shape, and the repair libraries looked at (the best-known are GPL or AGPL).
+- **[SOLIDCRAFT.md](SOLIDCRAFT.md)** (v1.5): what SolidCraft offers an outside program, and why the link is outside it.
+- **[INTEL_GPU.md](INTEL_GPU.md)** (v1.4): Intel laptop graphics, and how little of a run a card can speed up.
 - **[COONS_FILL.md](COONS_FILL.md)** (v1.3): the Coons gap filler and the hybrid, every try in order with what it
   measured, and the scripts that measured it (`scripts/coons_fill/`).
 - **[../../LTS_POLICY.md](../../LTS_POLICY.md)** and **[../KNOWN_LIMITATIONS.md](../KNOWN_LIMITATIONS.md)** (v1.2): what the long-term-support project promises from 1.0.0 on, the gates not yet met, and what has and has not been tested.
@@ -907,27 +1227,27 @@ Twoo STEP CAD Toolbox is the same maths as EVERYTHING to solid 0.10.2-wip in a n
 
 ![Ways in, plug-ins and shared core](images/fig-architecture.png)
 
-*Figure 20. How the toolbox is put together: four ways in, five plug-ins, one shared core. (Schematic.)*
+*Figure 24. How the toolbox is put together: four ways in, five plug-ins, one shared core. (Schematic.)*
 
 ![The top of the app with the instrument-panel header and the tabs](images/ui-top.jpg)
 
-*Figure 21. The top of the app: a tab for each plug-in, a CPU meter and disk and run lights.*
+*Figure 25. The top of the app: a tab for each plug-in, a CPU meter and disk and run lights.*
 
 ![The log of a conversion and the result box](images/ui-log-result.jpg)
 
-*Figure 22. A conversion's log and result: the route taken (quad patches), the shape counts, the solid and validity checks, and the measured deviation from the mesh.*
+*Figure 26. A conversion's log and result: the route taken (quad patches), the shape counts, the solid and validity checks, and the measured deviation from the mesh.*
 
 ![The Hardpoints tab](images/ui-hardpoints.jpg)
 
-*Figure 23. The Hardpoints tab: convert using, ignoring or while making a hardpoint STL (D14).*
+*Figure 27. The Hardpoints tab: convert using, ignoring or while making a hardpoint STL (D14).*
 
 ![The Jetwash tab](images/ui-jetwash.jpg)
 
-*Figure 24. The Jetwash tab: a threshold and a coarseness slider for cleaning tiny junk faces out of a STEP file (D10).*
+*Figure 28. The Jetwash tab: a threshold and a coarseness slider for cleaning tiny junk faces out of a STEP file (D10).*
 
 ![The Install tab](images/ui-install.jpg)
 
-*Figure 25. The Install tab: put the toolbox into FreeCAD or Fusion, or add right-click entries.*
+*Figure 29. The Install tab: put the toolbox into FreeCAD or Fusion, or add right-click entries.*
 
 ## 6. What is not done or not tested (honesty ledger)
 
@@ -947,6 +1267,19 @@ Twoo STEP CAD Toolbox is the same maths as EVERYTHING to solid 0.10.2-wip in a n
   whole parts came out about the same and it is about twice as slow per patch. Not tried on real scans.
 - (v1.3) **Per-region hybrid (D19): still not built.** One test part measured: neither quad remesher keeps an open
   boundary, and QuadriFlow's sharp-edge option left 24 of 56 rim quads crossing the rim.
+- (v1.5) **Scans (D20):** measured on a stand-in scan, not the real S99 scan (Thingiverse could not be reached from
+  the test machine), on a 2-core Linux machine. A noisy scan still comes out partly as facets; Quick ended all
+  facets on the stand-in. The thresholds (2 %, 0.1 %, 100,000, 150,000, 60,000) are first choices.
+- (v1.5) **SolidCraft link (D23)** tested only against a stand-in that follows SolidCraft's published protocol; never
+  against a real SolidCraft. **D24 and D25 are ideas**, not built or measured.
+- (v1.7) **D29 and D30 are measured on stand-in scans made by script, never on the real S99 file.** Turned scan: 23.5 min and
+  all-facets on 0.11.3, 6 to 16 minutes and 7,099 to 28,082 faces here; **one run of four did not finish in 37 minutes** (an
+  unbounded OpenCascade meshing call, which 0.11.3 also has). Organic scan: given back its 0.11.3 treatment. The scan test's
+  line (2 degrees) has a gap of a factor of 20 on the meshes tried; a real scan with little noise is untested.
+- (v1.6) **Closed scans (D26) and where the time goes (D28):** measured on a closed stand-in, not the real S99 scan, on a
+  2-core Linux machine; the thresholds (150,000, 100,000, a tenth, half the tolerance) are first choices. The power
+  check (D27) was run only against made-up readings and this test machine, **never on the author's laptop**. The
+  write-and-read-back loop is as slow as before; the one attempt to bound it hung and was reverted.
 - (v1.2) **Not run on a real Windows PC, FreeCAD or Fusion** (gates 3 and 4 of `LTS_POLICY.md`); the Mac has had one field report, the one above. Dependencies are version ranges, not pins.
 
 ---
@@ -954,7 +1287,7 @@ Twoo STEP CAD Toolbox is the same maths as EVERYTHING to solid 0.10.2-wip in a n
 ## 7. How to cite this
 
 Armstrong, M. (2026). *SOLID evidence: a defensive publication of how EVERYTHING to solid turns triangle meshes into
-CAD solids, with all the free research behind it.* Version 1.3, 2 November 2026 (first published as version 1.0, 23 October 2026; D1–D15 unchanged since version 1.1, 24 October 2026; version 1.2 the same day as 1.3).
+CAD solids, with all the free research behind it.* Version 1.7, 19 November 2026 (first published as version 1.0, 23 October 2026; D1–D15 unchanged since version 1.1, 24 October 2026).
 <https://github.com/The-Dorkknight/twoo-step-cad-toolbox/blob/main/docs/research/SOLID_EVIDENCE.md>
 (The first version was published at <https://github.com/The-Dorkknight/stl2step/blob/main/docs/research/SOLID_EVIDENCE.md>, now frozen.)
 

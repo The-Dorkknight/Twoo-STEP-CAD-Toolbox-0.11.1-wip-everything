@@ -104,7 +104,7 @@ class Budget(unittest.TestCase):
     def test_start_time_survives_the_reduction(self):
         """The 60 s cap of the Draft preset counts from the start, also after the mesh is reduced."""
         src = open(os.path.join(ROOT, "tostep", "plugins", "mesh2step", "classic.py"), encoding="utf-8").read()
-        body = src[src.index("def convert(in_path, out_path"):]
+        body = src[src.index("def _convert(in_path, out_path"):]     # (0.11.3: convert() wraps _convert())
         body = body[:body.index("\ndef ", 10)]
         rebuilt = body.count("ctx = MeshCtx(")
         self.assertGreaterEqual(rebuilt, 3)

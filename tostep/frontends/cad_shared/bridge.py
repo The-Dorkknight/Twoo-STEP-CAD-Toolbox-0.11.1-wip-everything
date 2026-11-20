@@ -122,7 +122,7 @@ def _env(folder):
     env.update(PYTHONNOUSERSITE="1", PYTHONUNBUFFERED="1", TOSTEP_NOPAUSE="1",
                TMPDIR=tmp, TMP=tmp, TEMP=tmp, MPLCONFIGDIR=os.path.join(tmp, "matplotlib"),
                TOSTEP_WORK=os.path.join(folder, "runtime", "work"),
-               TOSTEP_OUTPUT=os.path.join(folder, "Output"))
+               TOSTEP_OUTPUT=os.path.join(folder, "Files"))
     return env
 
 

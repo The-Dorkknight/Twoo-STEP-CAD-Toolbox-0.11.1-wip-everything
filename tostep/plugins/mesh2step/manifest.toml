@@ -99,6 +99,14 @@ help = "Reduce to N triangles first (0 = off). Flat faces, holes and sharp edges
 advanced = true
 
 [[params]]
+name = "scan_cleanup"
+type = "choice"
+choices = ["auto", "on", "largest", "off"]
+default = "auto"
+help = "Scan clean-up before converting: removes loose pieces (scanner spray, stray triangles), cuts non-manifold edges and fills scanner holes. auto = only when the mesh is not one closed piece, and small closed parts are kept; on = drop every piece under 2 % of the largest; largest = keep only the largest piece (a scan on a turntable plate); off."
+advanced = true
+
+[[params]]
 name = "smooth"
 type = "int"
 default = 0
@@ -184,6 +192,14 @@ type = "int"
 default = 0
 min = 0
 help = "Most slow plate fills per conversion (0 = the profile's allowance)."
+advanced = true
+
+[[params]]
+name = "scan_mode"
+type = "choice"
+choices = ["auto", "scan", "cad"]
+default = "auto"
+help = "Is the mesh a 3D scan? A dense mesh (over 100,000 triangles) whose small triangles are tilted a few degrees at random is one, and then gets the scan rules: a light denoise, edge-keeping smoothing (sharp edges and corners stay), a thinned-out mesh and guesstimated freeform areas. auto = decide by looking (the web page asks first); scan = treat it as one anyway; cad = never, convert it as it is."
 advanced = true
 
 [[params]]

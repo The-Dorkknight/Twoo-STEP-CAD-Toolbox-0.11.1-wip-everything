@@ -57,7 +57,7 @@ need no FreeCAD are built into `tostep/plugins/image2step/imagetosketch` (this b
    only* writes just the lines and arcs with no face; that is valid STEP too, but some programs skip bare curves
    when importing (Fusion's STEP import reads faces and solids), so the face is the safer flat form.
    *Include borderline shapes* adds the amber ones the tracer was unsure of. *Also save the outline as SVG / DXF*
-   writes the same outline as a millimetre drawing into `Output/` beside the STEP, for laser cutters and 2D CAD.
+   writes the same outline as a millimetre drawing into `Files/` beside the STEP, for laser cutters and 2D CAD.
 4. **A shape that fills the picture.** A logo or icon often runs right to the picture's edge. *Shape runs off the
    picture → work it out* continues drawn graphics a little beyond the edge so the whole shape is traced, and
    leaves photos alone; the other two choices force it either way. (Before 0.5.1 such a shape was left out and only

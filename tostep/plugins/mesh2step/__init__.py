@@ -43,7 +43,7 @@ def build_params(p, scale):
         ladder_guess=bool(p["ladder_guess"]), ladder_rough=bool(p["ladder_rough"]),
         budget_s=max(0.0, float(p["budget_s"] or 0)), max_fills=max(0, int(p["max_fills"] or 0)),
         plane_rule=str(p["plane_rule"] or "classic"), save_labelled=str(p["save_labelled"] or ""),
-        gap_fill=str(p.get("gap_fill") or "plate"))
+        gap_fill=str(p.get("gap_fill") or "plate"), scan_cleanup=str(p.get("scan_cleanup") or "auto"), scan_mode=str(p.get("scan_mode") or "auto"))
 
 
 def heights(text):

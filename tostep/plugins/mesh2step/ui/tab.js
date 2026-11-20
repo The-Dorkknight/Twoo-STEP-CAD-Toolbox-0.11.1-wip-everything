@@ -11,8 +11,24 @@ function convParams(){return{units:$('units').value,mode:modeNow(),tol:$('tol').
   axis:$('axis').value,simplify:$('simp').value,source:$('src').value,slice_at:$('sliceat').value,height:$('height').value,
   max_slices:$('maxs').value,sensitivity:$('sens').value,smooth_sketch:$('ssk').checked,symmetric:$('sym').checked,heights:$('heights').value,
   plane_angle:$('plane').value,crease_angle:$('crease').value,patch_size:$('patch').value,max_bend:$('bend').value,
-  primitives:$('prim').checked,memory_guard:$('memg').checked,guess:$('guess').checked,organic_tol:$('otol').value,decimate:$('dec').value,smooth:$('smooth').value,budget_s:$('budget').value,gap_fill:$('gapf').value}}
-function runConv(){start('conv','convert',convParams())}
+  primitives:$('prim').checked,memory_guard:$('memg').checked,guess:$('guess').checked,organic_tol:$('otol').value,decimate:$('dec').value,smooth:$('smooth').value,budget_s:$('budget').value,gap_fill:$('gapf').value,scan_cleanup:$('scanc').value,scan_mode:$('scanm').value}}
+let SCANQ=null;
+function scanAnswer(a){$('scanq').style.display='none';const f=SCANQ;SCANQ=null;if(f)f(a)}
+function askScan(info){return new Promise(res=>{SCANQ=res;$('scanq-why').textContent=info.why+'.';$('scanq').style.display='flex';$('scanq-scan').focus()})}
+async function runConv(){
+  const p=convParams();const mode=p.mode;
+  if((mode==='surface'||mode==='faceted')&&p.scan_mode==='auto'){
+    const b=$('b-conv');b.disabled=true;const was=b.textContent;b.textContent='Looking at the mesh…';
+    let info={likely:false};try{info=await api('/api/scancheck',{file:sel.conv})}catch(e){}
+    b.textContent=was;b.disabled=false;
+    if(info.likely){
+      const a=await askScan(info);
+      if(a===null||a===undefined)return;
+      p.scan_mode=a;
+      if(a==='cad'){p.engine='classic'}
+    }
+  }
+  start('conv','convert',p)}
 Object.assign(PQ,{
  tol:v=>{v=+v;if(!(v>0))return[.5,.6];const x=cl((Math.log10(v)+2.3)/2.3);return[.95-.8*x,.97-.7*x]},
  simp:v=>{v=+v;if(!(v>0))return[.4,.6];const x=cl((Math.log10(v)+2.3)/2.3);return[.9-.7*x,.95-.65*x]},
@@ -44,7 +60,8 @@ function preApply(id){const adv=id==='advanced';const P=PRESETS.presets.find(p=>
     for(const k in val){const e=$(val[k]);e.value=s[k];e.dispatchEvent(new Event('input',{bubbles:true}))}
     const chk={primitives:'prim',memory_guard:'memg',guess:'guess'};
     for(const k in chk){const e=$(chk[k]);e.checked=!!s[k];e.dispatchEvent(new Event('change',{bubbles:true}))}
-    $('gapf').value=s.gap_fill||'plate';
+    $('gapf').value=s.gap_fill||'plate';$('scanm').value=s.scan_mode||'auto';
+    $('scanc').value=s.scan_cleanup||'auto';
     $('otol').disabled=!s.guess;$('pre-d').textContent='';try{localStorage.setItem('tostep-preset-base',id)}catch(e){}}
   else $('pre-d').textContent='Every setting is shown below. Change anything you like; picking a preset again sets them back.';
   try{localStorage.setItem('tostep-preset',id)}catch(e){}}

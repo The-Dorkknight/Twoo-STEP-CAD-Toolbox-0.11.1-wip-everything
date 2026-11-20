@@ -8,7 +8,7 @@ function scShowOs(o){$('sc-os').innerHTML=o.found?('OpenSCAD found: <code>'+esc(
 async function scSaveOs(){try{scShowOs((await api('/api/scad/settings',{openscad:$('sc-ospath').value})).openscad)}catch(e){alert(e.message)}}
 async function scFindOs(){try{scShowOs((await api('/api/scad/find-openscad',{})).openscad)}catch(e){alert(e.message)}}
 function scSetFile(j){SC.cur=j;sel.scad=j.id;$('sc-chosen').classList.remove('hide');$('sc-name').textContent=j.name;
-  $('sc-wpath').textContent=j.path||'(dropped in: the STEP goes to the Output folder)';$('sc-open').style.display=j.local?'':'none';
+  $('sc-wpath').textContent=j.path||'(dropped in: the STEP goes to the Files folder)';$('sc-open').style.display=j.local?'':'none';
   $('f-scad').textContent=j.name;$('b-scad').disabled=false;$('b-sc-live').disabled=!j.local;
   if(!j.local)$('sc-where').value='output';
   SC.params=j.params||[];scDrawParams()}

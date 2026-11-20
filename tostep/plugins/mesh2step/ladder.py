@@ -170,6 +170,12 @@ def choose(ctx, prm, log):
     # the histogram crease and the density-independent strip test are for CAD-like parts; on
     # the organic test figure they made 48 small flats where the released rules make 14
     cad_like = r in ("prismatic", "lathe")
+    scan = bool(getattr(prm, "scan", False))
+    if cad_like and scan:
+        # (0.11.4) a scan of a turned or flat-sided part is still a scan: after the noise is smoothed off, the
+        # edge-angle histogram has no valley worth the name and put the sharp-edge angle at 10 degrees, which
+        # cut the stand-in into 85 pieces, and the lathe route then fitted all 150,000 triangles exactly
+        cad_like = False
     if cad_like:
         prm.strip_rule = "sag"
     if cad_like and prm.ladder_crease and prm.crease_angle == type(prm).crease_angle:
@@ -191,6 +197,8 @@ def choose(ctx, prm, log):
     elif r == "lathe":
         prm.rough = True
         prm.lathe_first = True
+        if scan and guess and not prm.organic_tol:
+            prm.organic_tol = prm.ladder_organic_tol
     elif r == "organic":
         prm.rough = False
         prm.skip_planes = True
@@ -207,7 +215,7 @@ def choose(ctx, prm, log):
             log("  lathe shapes are claimed first (roughing), the rest is fitted afterwards")
         if guess and not prm.organic_tol:
             prm.organic_tol = prm.ladder_organic_tol
-    if prm.organic_tol and r in ("organic", "mixed"):
+    if prm.organic_tol and (r in ("organic", "mixed") or scan):
         log(f"  problem areas will be guesstimated (freeform patches may be up to {prm.organic_tol:.3g} mm off)")
     log("  " + estimate(r, ctx.nF, bool(prm.organic_tol)))
     return r, sig

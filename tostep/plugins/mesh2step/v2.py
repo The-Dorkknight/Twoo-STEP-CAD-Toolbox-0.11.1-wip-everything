@@ -71,6 +71,7 @@ from OCP.TopoDS import TopoDS_Shell, TopoDS_Compound
 from OCP.TopLoc import TopLoc_Location
 
 # Identical to the Classic converter's own: shared from there instead of kept twice (0.6.0).
+from tostep.plugins.mesh2step.classic import SCAN_PREREDUCE  # noqa: E402
 from tostep.plugins.mesh2step.classic import (  # noqa: E402,F401
     MeshCtx, _Graph, _Log, _S, _absorb_specks, _cast, _cone, _connected_from, _count_faces, _explore,
     _fit_circle2d, _fit_plane, _fit_primitive_raw, _fps, _fraction_inside, _free_edge_points, _gp,
@@ -105,6 +106,7 @@ class Params:
     fit_primitives: bool = True    # try cylinders / spheres
     decimate: int = 0              # target triangle count (0 = keep)
     smooth: int = 0                # Taubin smoothing iterations (for noisy scans)
+    scan_cleanup: str = "auto"     # see classic.Params / scanclean.py
     max_points: int = 80           # interior point constraints per NURBS patch
     refine_rounds: int = 3
     verify: bool = True
@@ -163,6 +165,9 @@ def load_mesh(path, prm: Params, log):
         m.remove_degenerate_faces()
         m.remove_duplicate_faces()
     m.remove_unreferenced_vertices()
+    from tostep.plugins.mesh2step import scanclean
+    m = scanclean.clean(m, getattr(prm, "scan_cleanup", "auto"), log)
+    scan_cleaned = bool(m.metadata.get("scan_cleaned"))
     m = _collapse_tiny_edges(m, prm, log)
     if prm.memory_guard:
         limit = safe_triangle_limit(prm.mode)
@@ -179,6 +184,9 @@ def load_mesh(path, prm: Params, log):
     if prm.smooth:
         trimesh.smoothing.filter_taubin(m, iterations=int(prm.smooth))
         log(f"Denoised ({prm.smooth} Taubin iterations)")
+    else:
+        from tostep.plugins.mesh2step.classic import scan_prep
+        m = scan_prep(m, prm, scan_cleaned, log)
     meshfix.fix_normals(m)
     if not m.is_watertight:
         trimesh.repair.fill_holes(m)

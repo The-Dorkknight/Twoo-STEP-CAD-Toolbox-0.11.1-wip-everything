@@ -50,6 +50,8 @@ i.x{font-style:normal;font-size:11px;font-weight:650;color:#b7791f;background:rg
 @media (max-width:760px){#viewer .vrow{flex-direction:column}#viewer canvas#gl{min-height:30%}#v-diag{width:auto;max-height:62%;border-left:0;border-top:1px solid var(--line)}}
 .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0 3px 0 8px}
 #wip{background:#b7791f;color:#fff;text-align:center;font-weight:700;padding:6px 10px;font-size:13px}
+#scanq{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:21;align-items:center;justify-content:center}
+#scanq .box{background:var(--card);border-radius:12px;max-width:560px;width:92vw;padding:20px}
 #disc{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:20;align-items:center;justify-content:center}
 #disc .box{background:var(--card);border-radius:12px;max-width:560px;width:92vw;padding:20px}
 #about{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:15;align-items:center;justify-content:center}

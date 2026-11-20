@@ -29,7 +29,7 @@ case "$M" in
 esac
 TARGET="$ARCH-$PLAT"
 RT="$ROOT/runtime/$TARGET"          # per-CPU, so one folder works on Intel and Apple Silicon Macs
-mkdir -p "$RT" "$ROOT/runtime/tmp" "$ROOT/Output"
+mkdir -p "$RT" "$ROOT/runtime/tmp" "$ROOT/Files"
 
 # ---- insulate from whatever Python setup the system or user has
 unset PYTHONHOME PYTHONPATH PYTHONSTARTUP PYTHONUSERBASE VIRTUAL_ENV CONDA_PREFIX \
@@ -39,7 +39,7 @@ export UV_PYTHON_INSTALL_DIR="$RT/python" UV_PYTHON_BIN_DIR="$RT/bin" UV_CACHE_D
 export UV_TOOL_DIR="$RT/tools" UV_TOOL_BIN_DIR="$RT/bin"
 export UV_NO_CONFIG=1 UV_PYTHON_PREFERENCE=only-managed UV_NO_MODIFY_PATH=1
 export TMPDIR="$ROOT/runtime/tmp" MPLCONFIGDIR="$ROOT/runtime/tmp/matplotlib"
-export TOSTEP_WORK="$ROOT/runtime/work" TOSTEP_OUTPUT="$ROOT/Output"
+export TOSTEP_WORK="$ROOT/runtime/work" TOSTEP_OUTPUT="$ROOT/Files"
 
 say() { printf '%s\n' "$*"; }
 
